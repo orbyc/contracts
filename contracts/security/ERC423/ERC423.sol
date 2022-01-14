@@ -32,7 +32,6 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         _name = name_;
     }
 
-
     /**
      * @dev Returns the agents collection name.
      */
