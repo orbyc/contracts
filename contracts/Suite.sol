@@ -7,8 +7,8 @@ import {ERC423} from "./security/ERC423/ERC423.sol";
 
 contract Suite is ERC423 {
     // Roles
-    uint64 public ADMIN_ROLE = 0x01;
-    uint64 public EDITOR_ROLE = 0x02;
+    uint64 public ADMIN_ROLE = 0x01 << 1;
+    uint64 public EDITOR_ROLE = 0x01 << 2;
 
     // Agents
     uint64 public ORBYC_AGENT = 0x031415;
