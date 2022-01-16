@@ -45,22 +45,26 @@ describe("Orbyc Suite", function () {
     });
 
     describe("agent and role registration", function () {
-      it("should fail if agent1 with role admin try to register an agent or a role", async () => {
+      it("should succeed if agent1 with role admin try to register a role", async () => {
+        await suite.connect(addr1).defineRole(role1, "defined");
+        expect(await suite.roleInfo(role1)).to.equal("defined");
+      });
+
+      it("should fail if agent1 with role admin try to register an agent", async () => {
         await expect(
           suite.connect(addr1).defineAgent(addr3.address, agent3, "")
         ).to.be.revertedWith("Error: agent has not the required role");
-
-        await expect(suite.connect(addr1).defineRole(role1, "")).to.be.revertedWith(
-          "Error: agent has not the required role"
-        );
       });
 
-      it("should succeed if agent2 with role editor try to register an agent or a role", async () => {
+      it("should succeed if agent2 with role editor try to register an agent", async () => {
         await suite.connect(addr2).defineAgent(addr3.address, agent3, "defined");
-        await suite.connect(addr2).defineRole(role1, "defined");
-
         expect(await suite.agentInfo(agent3)).to.equal("defined");
-        expect(await suite.roleInfo(role1)).to.equal("defined");
+      });
+
+      it("should fails if agent2 with role editor try to register a role", async () => {
+        await expect(suite.connect(addr2).defineRole(role1, "")).to.be.revertedWith(
+          "Error: agent has not the required role"
+        );
       });
     });
 
@@ -116,19 +120,19 @@ describe("Orbyc Suite", function () {
 
       it("should fail when defining another agent with address1", async () => {
         await expect(suite.defineAgent(addr1.address, agent1, "")).to.be.revertedWith(
-          "Error: can not operate over null agent address"
+          "Error: agent is null address, can not operate"
         );
       });
 
       it("should fail when grant roles to nullAddress", async () => {
         await expect(suite.grantRole(nullAgent, adminRole)).to.be.revertedWith(
-          "Error: can not modify null agent roles"
+          "Error: can not operate over null agent"
         );
       });
 
       it("should fail when revoke roles from nullAddress", async () => {
         await expect(suite.revokeRole(nullAgent, adminRole)).to.be.revertedWith(
-          "Error: can not modify null agent roles"
+          "Error: can not operate over null agent"
         );
       });
     });
