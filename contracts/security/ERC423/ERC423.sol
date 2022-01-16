@@ -6,22 +6,20 @@ pragma solidity ^0.8.0;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IERC423} from "./IERC423.sol";
 import {IERC423Metadata} from "./extensions/IERC423Metadata.sol";
+import {Identity} from "./schema/IERC423Schema.sol";
 
 contract ERC423 is Context, IERC423, IERC423Metadata {
     // Suite Name
     string private _name;
 
-    // Mapping from role ID to role Info
-    mapping(uint64 => string) private _rolesInfo;
+    // mapping from agent Address to agent ID
+    mapping(address => uint64) _agents;
 
-    // Mapping from agent ID to agent Info
-    mapping(uint64 => string) private _agentsInfo;
+    // mapping from agent ID to agent Info
+    mapping(uint64 => Identity.Agent) private _agentsInfo;
 
-    // Mapping from agent Address to agent ID
-    mapping(address => uint64) private _agents;
-
-    // Mapping from agent ID to agent Roles
-    mapping(uint64 => uint64) private _agentRoles;
+    // mapping from role ID to role Info
+    mapping(uint64 => Identity.Role) private _rolesInfo;
 
     modifier onlyRole(uint64 indexed role) {
         require(hasRole(idOf(_msgSender()), role), "Error: agent has not the required role");
@@ -159,21 +157,20 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         view
         virtual
         returns (bool)
-    {
-        uint64 roles = _agentRoles[id];
-        return roles & role != 0;
+    { 
+        return  _agentsInfo[id].roles & role != 0;
     }
 
     /**
      * @dev See {IERC423-roleInfo}
      */
-    function _roleInfo(uint64 role)
+    function _roleInfo(uint64 id)
         internal
         view
         virtual
         returns (string memory)
-    {
-        return _rolesInfo[role];
+    { 
+        return _rolesInfo[id].info;
     }
 
     /**
@@ -185,7 +182,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         virtual
         returns (string memory)
     {
-        return _agentsInfo[id];
+        return _agentsInfo[id].info;
     }
 
     /**
@@ -196,8 +193,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         virtual
         returns (bool)
     {
-        _rolesInfo[role] = info;
-
+        _rolesInfo[role] = Identity.Role(role, info);
         emit RoleDefined(role, _msgSender());
 
         return true;
@@ -211,11 +207,10 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         uint64 id,
         string memory info
     ) internal virtual returns (bool) {
-        _agentsInfo[id] = info;
+        _agentsInfo[id].info = info;
         _agents[agent] = id;
 
         emit AgentDefined(agent, id, _msgSender());
-
         return true;
     }
 
@@ -223,7 +218,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
      * @dev See {IERC423-grantRole}
      */
     function _grantRole(uint64 id, uint64 role) internal virtual returns (bool) {
-        _agentRoles[id] |= role;
+        _agentsInfo[id].roles |= role;
         return true;
     }
 
@@ -231,7 +226,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
      * @dev See {IERC423-revokeRole}
      */
     function _revokeRole(uint64 id, uint64 role) internal virtual returns (bool) {
-        _agentRoles[id] ^= role;
+        _agentsInfo[id].roles ^= role;
         return true;
     }
 }
