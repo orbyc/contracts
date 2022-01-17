@@ -20,12 +20,10 @@ library Chain {
         uint64 owner;
         // asset issuer id
         uint64 issuer;
-        // co2 emission (creation + composition + traceability)
+        // co2 emission (maybe on creation)
         uint256 co2;
         // creation co2 emission certificate
         uint256 cert;
-        // list of assets that are composed by this asset
-        uint256[] children;
         // list of assets that composes this asset
         uint256[] parents;
         // mapping of asset id to composition (sum represents 100%)

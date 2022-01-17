@@ -351,8 +351,6 @@ abstract contract ERC245 is Context, IERC245 {
      * @dev Append existing movement to asset traceability.
      *
      * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {AssetCo2Update} event.
      */
     function _addMovements(uint256 id, uint256[] memory movements)
         internal
@@ -361,7 +359,6 @@ abstract contract ERC245 is Context, IERC245 {
     {
         Chain.Asset storage asset = _assets[id];
 
-        uint256 co2;
         for (uint256 i = 0; i < movements.length; i++) {
             require(
                 !Array.contains(asset.traceability, movements[i]),
@@ -372,9 +369,8 @@ abstract contract ERC245 is Context, IERC245 {
             require(movement.id != 0, "Error: can not add inexistent movement");
 
             asset.traceability.push(movement.id);
-            co2 += movement.co2;
         }
-        _updateCo2(asset.id, co2);
+
         return true;
     }
 
@@ -382,8 +378,6 @@ abstract contract ERC245 is Context, IERC245 {
      * @dev Add existing assets to asset composition.
      *
      * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {AssetCo2Update} event.
      */
     function _addParents(
         uint256 id,
@@ -392,7 +386,6 @@ abstract contract ERC245 is Context, IERC245 {
     ) internal virtual returns (bool) {
         Chain.Asset storage asset = _assets[id];
 
-        uint256 co2;
         for (uint256 i = 0; i < parents.length; i++) {
             require(
                 asset.composition[parents[i]] == 0,
@@ -404,28 +397,9 @@ abstract contract ERC245 is Context, IERC245 {
 
             asset.composition[parent.id] = composition[i];
             asset.parents.push(parent.id);
-            parent.children.push(asset.id);
-            co2 += parent.co2;
         }
 
-        _updateCo2(asset.id, co2);
         return true;
-    }
-
-    /**
-     * @dev Recursively updates the children's co2 value with the provided increment
-     *
-     * Emits a {AssetCo2Update} event.
-     */
-    function _updateCo2(uint256 id, uint256 co2) private {
-        Chain.Asset storage asset = _assets[id];
-
-        asset.co2 += co2;
-        for (uint256 i = 0; i < asset.children.length; i++) {
-            _updateCo2(asset.children[i], co2);
-        }
-
-        emit AssetCo2Update(asset.id, co2);
     }
 }
 

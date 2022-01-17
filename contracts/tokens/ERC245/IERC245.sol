@@ -128,8 +128,6 @@ interface IERC245 {
      * @dev Append existing movements to asset traceability.
      *
      * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {AssetCo2Update} event.
      */
     function addMovements(
         uint256 id, 
@@ -140,8 +138,6 @@ interface IERC245 {
      * @dev Add existing assets to asset composition.
      *
      * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {AssetCo2Update} event.
      */
     function addParents(
         uint256 id,
@@ -161,12 +157,7 @@ interface IERC245 {
      * @dev Emitted when a movement with `id` was issued by `issuer` using `signer`
      */
     event MovementIssued(uint256 id, uint64 issuer, address signer);
-    
-    /**
-     * @dev Emitted when asset with `id` co2 total was updated.
-     */
-    event AssetCo2Update(uint256 id, uint256 co2);
-
+     
     /**
      * @dev Emitted when asset with `id` has change ownership to `recipient` using `signer`.
      */

@@ -166,7 +166,7 @@ describe("ERC245", function () {
         id: 1010,
         lat: "80000",
         lng: "-4000",
-        co2: 500,
+        co2: 200,
         cert: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
@@ -176,9 +176,9 @@ describe("ERC245", function () {
         await supply.addMovements(asset.id, [move.id]);
       });
 
-      it("should affect asset co2 emission", async () => {
+      it("should not affect asset co2 emission", async () => {
         const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-        expect(co2).to.equal(asset.co2 + move.co2);
+        expect(co2).to.equal(asset.co2);
       });
 
       it("should be present in asset traceability", async () => {
@@ -205,7 +205,7 @@ describe("ERC245", function () {
       const parent = {
         id: 1012,
         owner: 200,
-        co2: 500,
+        co2: 1000,
         cert: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
@@ -215,9 +215,9 @@ describe("ERC245", function () {
         await supply.addParents(asset.id, [parent.id], [100]);
       });
 
-      it("should affect asset co2 emission", async () => {
+      it("should not affect asset co2 emission", async () => {
         const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-        expect(co2).to.equal(asset.co2 + parent.co2);
+        expect(co2).to.equal(asset.co2);
       });
 
       it("should be present in asset traceability", async () => {
@@ -243,7 +243,7 @@ describe("ERC245", function () {
       const parent = {
         id: 1012,
         owner: 202,
-        co2: 502,
+        co2: 1000,
         cert: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
@@ -258,7 +258,7 @@ describe("ERC245", function () {
           id: 1010,
           lat: "80000",
           lng: "-4000",
-          co2: 500,
+          co2: 200,
           cert: 100,
           metadata: JSON.stringify({ issuer: 100 }),
         };
@@ -275,14 +275,14 @@ describe("ERC245", function () {
           await supply.addMovements(parent.id, [move.id]);
         });
 
-        it("should affect parent co2 emission", async () => {
+        it("should not affect parent co2 emission", async () => {
           const [_, __, co2, ___, ____] = await supply.assetInfo(parent.id);
-          expect(co2).to.equal(move.co2 + parent.co2);
+          expect(co2).to.equal(parent.co2);
         });
 
-        it("should affect asset co2 emission", async () => {
+        it("should not affect asset co2 emission", async () => {
           const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-          expect(co2).to.equal(move.co2 + parent.co2 + asset.co2);
+          expect(co2).to.equal(asset.co2);
         });
       });
 
@@ -290,7 +290,7 @@ describe("ERC245", function () {
         const grand = {
           id: 1014,
           owner: 200,
-          co2: 500,
+          co2: 1500,
           cert: 100,
           metadata: JSON.stringify({ issuer: 100 }),
         };
@@ -300,14 +300,14 @@ describe("ERC245", function () {
           await supply.addParents(parent.id, [grand.id], [100]);
         });
 
-        it("should affect parent co2 emission", async () => {
+        it("should not affect parent co2 emission", async () => {
           const [_, __, co2, ___, ____] = await supply.assetInfo(parent.id);
-          expect(co2).to.equal(grand.co2 + parent.co2);
+          expect(co2).to.equal(parent.co2);
         });
 
-        it("should affect asset co2 emission", async () => {
+        it("should not affect asset co2 emission", async () => {
           const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-          expect(co2).to.equal(grand.co2 + parent.co2 + asset.co2);
+          expect(co2).to.equal(asset.co2);
         });
       });
     });
