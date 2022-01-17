@@ -296,11 +296,14 @@ abstract contract ERC245 is Context, IERC245 {
         Chain.Asset storage asset = _assets[id];
         require(asset.id == 0, "Error: asset already exists");
 
+        Chain.Certificate storage certificate = _certs[cert];
+        require(certificate.id == cert, "Error: certificate does not exists");
+
         asset.id = id;
         asset.owner = owner;
         asset.issuer = issuer;
         asset.co2 = co2;
-        asset.cert = cert;
+        asset.cert = certificate.id;
         asset.metadata = metadata;
 
         emit AssetIssued(asset.id, issuer, _msgSender());
@@ -328,12 +331,15 @@ abstract contract ERC245 is Context, IERC245 {
         Chain.Movement storage movement = _movements[id];
         require(movement.id == 0, "Error: movement already exists");
 
+        Chain.Certificate storage certificate = _certs[cert];
+        require(certificate.id == cert, "Error: certificate does not exists");
+
         movement.id = id;
         movement.issuer = issuer;
         movement.lat = lat;
         movement.lng = lng;
         movement.co2 = co2;
-        movement.cert = cert;
+        movement.cert = certificate.id;
         movement.metadata = metadata;
 
         emit MovementIssued(movement.id, issuer, _msgSender());

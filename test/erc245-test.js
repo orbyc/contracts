@@ -68,6 +68,7 @@ describe("ERC245", function () {
     };
 
     beforeEach(async () => {
+      await supply.issueCertificate(move.cert, "");
       await supply.issueMovement(move.id, move.lat, move.lng, move.co2, move.cert, move.metadata);
     });
 
@@ -86,6 +87,19 @@ describe("ERC245", function () {
         supply.issueMovement(move.id, move.lat, move.lng, move.co2, move.cert, move.metadata)
       ).to.be.revertedWith("Error: movement already exists");
     });
+
+    it("should fail if the certificate has not been issued", async () => {
+      await expect(
+        supply.issueMovement(
+          move.id + 1,
+          move.lat,
+          move.lng,
+          move.co2,
+          move.cert + 1,
+          move.metadata
+        )
+      ).to.be.revertedWith("Error: certificate does not exists");
+    });
   });
 
   describe("asset issuing", () => {
@@ -98,6 +112,7 @@ describe("ERC245", function () {
     };
 
     beforeEach(async () => {
+      await supply.issueCertificate(asset.cert, "");
       await supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata);
     });
 
@@ -115,6 +130,12 @@ describe("ERC245", function () {
         supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata)
       ).to.be.revertedWith("Error: asset already exists");
     });
+
+    it("should fail if the certificate has not been issued", async () => {
+      await expect(
+        supply.issueAsset(asset.id + 1, asset.owner, asset.co2, asset.cert + 1, asset.metadata)
+      ).to.be.revertedWith("Error: certificate does not exists");
+    });
   });
 
   describe("asset operations", () => {
@@ -127,6 +148,7 @@ describe("ERC245", function () {
     };
 
     beforeEach(async () => {
+      await supply.issueCertificate(asset.cert, "");
       await supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata);
     });
 
