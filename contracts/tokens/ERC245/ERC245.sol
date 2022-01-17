@@ -86,15 +86,13 @@ abstract contract ERC245 is Context, IERC245 {
         returns (uint256[] memory, uint16[] memory)
     {
         Chain.Asset storage asset = _assets[id];
-        uint256[] memory items = new uint256[](asset.parents.length);
         uint16[] memory percent = new uint16[](asset.parents.length);
 
         for (uint256 i = 0; i < asset.parents.length; i++) {
             percent[i] = asset.composition[asset.parents[i]];
-            items[i] = asset.parents[i];
         }
 
-        return (items, percent);
+        return (asset.parents, percent);
     }
 
     /**
@@ -116,19 +114,15 @@ abstract contract ERC245 is Context, IERC245 {
         )
     {
         Chain.Asset storage asset = _assets[id];
-        uint256[] memory ids = new uint256[](asset.traceability.length);
         string[] memory lats = new string[](asset.traceability.length);
         string[] memory lngs = new string[](asset.traceability.length);
 
         for (uint256 i = 0; i < asset.traceability.length; i++) {
-            Chain.Movement storage movement = _movements[asset.traceability[i]];
-
-            ids[i] = movement.id;
-            lats[i] = movement.lat;
-            lngs[i] = movement.lng;
+            lats[i] = _movements[asset.traceability[i]].lat;
+            lngs[i] = _movements[asset.traceability[i]].lng;
         }
 
-        return (ids, lats, lngs);
+        return (asset.traceability, lats, lngs);
     }
 
     /**
