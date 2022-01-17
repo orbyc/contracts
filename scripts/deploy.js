@@ -1,12 +1,19 @@
 const hre = require("hardhat");
 
 async function main() {
-  const Suite = await hre.ethers.getContractFactory("Suite");
-  const suite = await Suite.deploy();
+  const Array = await ethers.getContractFactory("Array");
+  const array = await Array.deploy();
+  await array.deployed();
 
-  await suite.deployed();
+  const SupplyChain = await ethers.getContractFactory("SupplyChain", {
+    libraries: {
+      Array: array.address,
+    },
+  });
+  const supply = await SupplyChain.deploy("Orbyc Supply Chain");
+  await supply.deployed();
 
-  console.log("Agents suite deployed to:", suite.address);
+  console.log("Supply Chain deployed to:", supply.address);
 }
 
 main()
