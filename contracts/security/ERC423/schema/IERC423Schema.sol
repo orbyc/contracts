@@ -4,19 +4,19 @@
 pragma solidity ^0.8.0;
 
 library Identity {
-    struct Agent {
-        // agent unique identifier
-        uint64 id;
-        // agent roles
-        uint64 roles;
-        // agent metadata
-        string info;
+    struct Account {
+        // account address
+        address account;
+        // account roles
+        uint256 roles;
+        // account metadata
+        string metadata;
     }
 
     struct Role {
         // role unique identifier
-        uint64 role;
+        uint256 role;
         // role metadata
-        string info;
+        string metadata;
     }
 }

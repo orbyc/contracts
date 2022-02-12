@@ -12,17 +12,20 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     // Suite Name
     string private _name;
 
-    // mapping from agent Address to agent ID
-    mapping(address => uint64) _agents;
+    // mapping from agent Address to account Address
+    mapping(address => address) _agentAccounts;
+
+    // mapping from agent Address remove status
+    mapping(address => bool) _agentRemoved;
 
     // mapping from agent ID to agent Info
-    mapping(uint64 => Identity.Agent) private _agentsInfo;
+    mapping(address => Identity.Account) private _accounts;
 
     // mapping from role ID to role Info
-    mapping(uint64 => Identity.Role) private _rolesInfo;
+    mapping(uint256 => Identity.Role) private _roles;
 
-    modifier onlyRole(uint64 indexed role) {
-        require(hasRole(idOf(_msgSender()), role), "Error: agent has not the required role");
+    modifier onlyRole(uint256 indexed role) {
+        require(hasRole(accountOf(_msgSender()), role), "Error: agent has not the required role");
         _;
     }
 
@@ -31,76 +34,43 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     }
 
     /**
-     * @dev Returns the agents collection name.
+     * @dev Returns the accounts collection name.
      */
     function name() public view virtual override returns (string memory) {
         return _name;
     }
 
     /**
-     * @dev Returns the `id` associated to the given `address`.
+     * @dev Returns the `account` associated to the given `agent`.
      */
-    function idOf(address agent) public view virtual override returns (uint64) {
-        return _idOf(agent);
+    function accountOf(address agent) public view virtual override returns (address) {
+        require(!_agentRemoved[agent], "ERC423: agent has been removed");
+        return _agentAccounts[agent];
+    }
+
+     /**
+     * @dev Returns info of the `account`.
+     */
+    function accountInfo(address account) public view virtual override returns (string memory) {
+        return _accounts[account].metadata;
     }
 
     /**
-     * @dev Returns the if given `agent` has `role`.
+     * @dev Returns true if given `account` has `role`.
      */
-    function hasRole(uint64 id, uint64 role)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return _hasRole(id, role);
+    function hasRole(address account, uint256 role) public view virtual override returns (bool) {
+        return _accounts[account].roles & role != 0;
     }
 
     /**
      * @dev Returns info of the given `role`.
      */
-    function roleInfo(uint64 role)
-        public
-        view
-        virtual
-        override
-        returns (string memory)
-    {
-        return _roleInfo(role);
+    function roleInfo(uint256 role) public view virtual override returns (string memory) {
+        return _roles[role].metadata;
     }
 
     /**
-     * @dev Returns info of agent with the given `id`.
-     */
-    function agentInfo(uint64 id)
-        public
-        view
-        virtual
-        override
-        returns (string memory)
-    {
-        return _agentInfo(id);
-    }
-
-    /**
-     * @dev Define `role` with the given `info`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {RoleDefined} event.
-     */
-    function defineRole(uint64 role, string memory info)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return _defineRole(role, info);
-    }
-
-    /**
-     * @dev Define an `agent` holder of the provided address with the specified `id` and `info`.
+     * @dev Define the `agent` with the given `account`
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
@@ -108,125 +78,118 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
      */
     function defineAgent(
         address agent,
-        uint64 id,
-        string memory info
+        address account,
+        string calldata metadata_
     ) public virtual override returns (bool) {
-        return _defineAgent(agent, id, info);
+        return _defineAgent(agent, account, metadata_);
     }
 
     /**
-     * @dev Grants `role` to the agent with the given `id`.
+     * @dev Removes an agent from the suite. Removed agents can no longer be associated with accounts.
      *
      * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {AgentRemoved} event. 
      */
-    function grantRole(uint64 id, uint64 role)
+    function removeAgent(address agent) public virtual override returns (bool){
+        return _removeAgent(agent);
+    }
+
+    /**
+     * @dev Define `role`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {RoleDefined} event.
+     */
+    function defineRole(uint256 role, string calldata metadata_) public virtual override returns (bool) {
+        return _defineRole(role, metadata_);
+    }
+
+    /**
+     * @dev Grants `role` to the given `account`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {RoleGranted} event.
+     */
+    function  grantRole(address account, uint256 role)
         public
         virtual
         override
         returns (bool)
     {
-        return _grantRole(id, role);
+        return _grantRole(account, role);
     }
 
-    /**
-     * @dev Revokes `role` from the agent with the given `id`.
+     /**
+     * @dev Revokes `role` from the given `account`.
      *
      * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {RoleRevoked} event.
      */
-    function revokeRole(uint64 id, uint64 role)
+    function revokeRole(address account, uint256 role)
         public
         virtual
         override
         returns (bool)
     {
-        return _revokeRole(id, role);
-    }
-
-    /**
-     * @dev See {IERC423-idOf}
-     */
-    function _idOf(address agent) internal view virtual returns (uint64) {
-        return _agents[agent];
-    }
-
-    /**
-     * @dev See {IERC423-hasRole}
-     */
-    function _hasRole(uint64 id, uint64 role)
-        internal
-        view
-        virtual
-        returns (bool)
-    { 
-        return  _agentsInfo[id].roles & role != 0;
-    }
-
-    /**
-     * @dev See {IERC423-roleInfo}
-     */
-    function _roleInfo(uint64 id)
-        internal
-        view
-        virtual
-        returns (string memory)
-    { 
-        return _rolesInfo[id].info;
-    }
-
-    /**
-     * @dev See {IERC423-agentInfo}
-     */
-    function _agentInfo(uint64 id)
-        internal
-        view
-        virtual
-        returns (string memory)
-    {
-        return _agentsInfo[id].info;
-    }
-
-    /**
-     * @dev See {IERC423-defineRole}
-     */
-    function _defineRole(uint64 role, string memory info)
-        internal
-        virtual
-        returns (bool)
-    {
-        _rolesInfo[role] = Identity.Role(role, info);
-        emit RoleDefined(role, _msgSender());
-
-        return true;
+        return _revokeRole(account, role);
     }
 
     /**
      * @dev See {IERC423-defineAgent}
      */
-    function _defineAgent(
-        address agent,
-        uint64 id,
-        string memory info
-    ) internal virtual returns (bool) {
-        _agentsInfo[id].info = info;
-        _agents[agent] = id;
+    function _defineAgent(address agent, address account, string calldata metadata_) internal virtual returns (bool) {
+        _accounts[account].metadata = metadata_;
+        _agentAccounts[agent] = account;
 
-        emit AgentDefined(agent, id, _msgSender());
+        emit AgentDefined(agent, account, _msgSender());
+        return true;
+    }
+
+    /**
+     * @dev See {IERC423-removeAgent}
+     */
+    function _removeAgent(address agent) internal virtual returns (bool) {
+         _agentRemoved[agent] = true;
+
+        emit AgentRemoved(agent, _msgSender());
+        return true;
+    }
+
+    /**
+     * @dev See {IERC423-defineRole}
+     */
+    function _defineRole(uint256 role, string calldata metadata_)
+        internal
+        virtual
+        returns (bool)
+    {
+        _roles[role] = Identity.Role(role, metadata_);
+
+        emit RoleDefined(role, _msgSender());
         return true;
     }
 
     /**
      * @dev See {IERC423-grantRole}
      */
-    function _grantRole(uint64 id, uint64 role) internal virtual returns (bool) {
-        _agentsInfo[id].roles |= role;
+    function _grantRole(address account, uint256 role) internal virtual returns (bool) {
+        _accounts[account].roles |= role;
+
+        emit RoleGranted(role, account, _msgSender());
         return true;
     }
 
     /**
      * @dev See {IERC423-revokeRole}
      */
-    function _revokeRole(uint64 id, uint64 role) internal virtual returns (bool) {
-        _agentsInfo[id].roles ^= role;
+    function _revokeRole(address account, uint256 role) internal virtual returns (bool) {
+        _accounts[account].roles ^= role;
+
+        emit RoleRevoked(role, account, _msgSender());
         return true;
     }
 }
