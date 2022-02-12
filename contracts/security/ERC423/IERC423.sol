@@ -57,7 +57,7 @@ interface IERC423 {
      *
      * Emits a {AgentDefined} event.
      */
-    function defineAgent(address agent, address account, string calldata metadata_) external returns (bool);
+    function defineAgent(address agent, address account, string memory metadata_) external returns (bool);
 
     /**
      * @dev Removes an agent from the suite. Removed agents can no longer be associated with accounts.
@@ -75,7 +75,7 @@ interface IERC423 {
      *
      * Emits a {RoleDefined} event.
      */
-    function defineRole(uint256 role, string calldata metadata_) external returns (bool);
+    function defineRole(uint256 role, string memory metadata_) external returns (bool);
 
     /**
      * @dev Grants `role` to the given `account`.

@@ -29,6 +29,11 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
         _;
     }
 
+    modifier validAgent(address indexed agent) {
+        require(!_agentRemoved[agent], "ERC423: agent has been removed" );
+        _;
+    }
+
     constructor(string memory name_) {
         _name = name_;
     }
@@ -43,8 +48,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     /**
      * @dev Returns the `account` associated to the given `agent`.
      */
-    function accountOf(address agent) public view virtual override returns (address) {
-        require(!_agentRemoved[agent], "ERC423: agent has been removed");
+    function accountOf(address agent) public view virtual override validAgent(agent) returns (address) {
         return _agentAccounts[agent];
     }
 
@@ -79,7 +83,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     function defineAgent(
         address agent,
         address account,
-        string calldata metadata_
+        string memory metadata_
     ) public virtual override returns (bool) {
         return _defineAgent(agent, account, metadata_);
     }
@@ -102,7 +106,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
      *
      * Emits a {RoleDefined} event.
      */
-    function defineRole(uint256 role, string calldata metadata_) public virtual override returns (bool) {
+    function defineRole(uint256 role, string memory metadata_) public virtual override returns (bool) {
         return _defineRole(role, metadata_);
     }
 
@@ -141,7 +145,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     /**
      * @dev See {IERC423-defineAgent}
      */
-    function _defineAgent(address agent, address account, string calldata metadata_) internal virtual returns (bool) {
+    function _defineAgent(address agent, address account, string memory metadata_) internal virtual returns (bool) {
         _accounts[account].metadata = metadata_;
         _agentAccounts[agent] = account;
 
@@ -162,7 +166,7 @@ contract ERC423 is Context, IERC423, IERC423Metadata {
     /**
      * @dev See {IERC423-defineRole}
      */
-    function _defineRole(uint256 role, string calldata metadata_)
+    function _defineRole(uint256 role, string memory metadata_)
         internal
         virtual
         returns (bool)
