@@ -2,8 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("ERC245", function () {
-  let supply,
-    issuer = 1;
+  let supply;
   let owner;
 
   const supplyName = "Test ERC245 Supply Chain";
@@ -13,7 +12,7 @@ describe("ERC245", function () {
     const array = await Array.deploy();
     await array.deployed();
 
-    const ERC245 = await ethers.getContractFactory("ERC245Private", {
+    const ERC245 = await ethers.getContractFactory("ERC245", {
       libraries: {
         Array: array.address,
       },
@@ -29,29 +28,24 @@ describe("ERC245", function () {
     expect(name).to.equal(supplyName);
   });
 
-  it("returns the id of a sender", async () => {
-    const id = await supply.idOf(owner.address);
-    expect(id).to.equal(issuer);
-  });
-
   describe("certificate issuing", () => {
     const cert = {
-      id: 100,
+      certId: 100,
       metadata: JSON.stringify({ issuer: 100 }),
     };
 
     beforeEach(async () => {
-      await supply.issueCertificate(cert.id, cert.metadata);
+      await supply.issueCertificate(cert.certId, cert.metadata);
     });
 
     it("returns the certificate info correctly", async () => {
-      const [id, metadata] = await supply.certificateInfo(cert.id);
-      expect(id).to.equal(issuer);
+      const [issuer, metadata] = await supply.certificateInfo(cert.certId);
+      expect(issuer).to.equal(owner.address);
       expect(metadata).to.equal(cert.metadata);
     });
 
     it("should fails issuing the same certificate", async () => {
-      await expect(supply.issueCertificate(cert.id, cert.metadata)).to.be.revertedWith(
+      await expect(supply.issueCertificate(cert.certId, cert.metadata)).to.be.revertedWith(
         "Error: certificate already exists"
       );
     });
@@ -59,43 +53,50 @@ describe("ERC245", function () {
 
   describe("movement issuing", () => {
     const move = {
-      id: 1010,
+      moveId: 1010,
       lat: "80000",
       lng: "-4000",
-      co2: 500,
-      cert: 100,
+      co2e: 500,
+      certId: 100,
       metadata: JSON.stringify({ issuer: 100 }),
     };
 
     beforeEach(async () => {
-      await supply.issueCertificate(move.cert, "");
-      await supply.issueMovement(move.id, move.lat, move.lng, move.co2, move.cert, move.metadata);
+      await supply.issueCertificate(move.certId, "");
+      await supply.issueMovement(
+        move.moveId,
+        move.lat,
+        move.lng,
+        move.co2e,
+        move.certId,
+        move.metadata
+      );
     });
 
     it("returns the movement info correctly", async () => {
-      const [id, lat, lng, co2, cert, metadata] = await supply.movementInfo(move.id);
-      expect(id).to.equal(issuer);
+      const [issuer, lat, lng, co2e, certId, metadata] = await supply.movementInfo(move.moveId);
+      expect(issuer).to.equal(owner.address);
       expect(lat).to.equal(move.lat);
       expect(lng).to.equal(move.lng);
-      expect(co2).to.equal(move.co2);
-      expect(cert).to.equal(move.cert);
+      expect(co2e).to.equal(move.co2e);
+      expect(certId).to.equal(move.certId);
       expect(metadata).to.equal(move.metadata);
     });
 
     it("should fail issuing the same movement", async () => {
       await expect(
-        supply.issueMovement(move.id, move.lat, move.lng, move.co2, move.cert, move.metadata)
+        supply.issueMovement(move.moveId, move.lat, move.lng, move.co2e, move.certId, move.metadata)
       ).to.be.revertedWith("Error: movement already exists");
     });
 
     it("should fail if the certificate has not been issued", async () => {
       await expect(
         supply.issueMovement(
-          move.id + 1,
+          move.moveId + 1,
           move.lat,
           move.lng,
-          move.co2,
-          move.cert + 1,
+          move.co2e,
+          move.certId + 1,
           move.metadata
         )
       ).to.be.revertedWith("Error: certificate does not exists");
@@ -104,98 +105,102 @@ describe("ERC245", function () {
 
   describe("asset issuing", () => {
     const asset = {
-      id: 1010,
-      owner: 200,
-      co2: 500,
-      cert: 100,
+      assetId: 1010,
+      owner: "0xA001da7DcdF4BD8463823669FB9c43Fcb807EA61",
+      co2e: 500,
+      certId: 100,
       metadata: JSON.stringify({ issuer: 100 }),
     };
 
     beforeEach(async () => {
-      await supply.issueCertificate(asset.cert, "");
-      await supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata);
+      await supply.issueCertificate(asset.certId, "");
+      await supply.issueAsset(asset.assetId, asset.owner, asset.co2e, asset.certId, asset.metadata);
     });
 
     it("returns the asset info correctly", async () => {
-      const [owner, id, co2, cert, metadata] = await supply.assetInfo(asset.id);
-      expect(owner).to.equal(asset.owner);
-      expect(id).to.equal(issuer);
-      expect(co2).to.equal(asset.co2);
-      expect(cert).to.equal(asset.cert);
+      const [_owner, _issuer, co2e, certId, metadata] = await supply.assetInfo(asset.assetId);
+      expect(_owner).to.equal(asset.owner);
+      expect(_issuer).to.equal(owner.address);
+      expect(co2e).to.equal(asset.co2e);
+      expect(certId).to.equal(asset.certId);
       expect(metadata).to.equal(asset.metadata);
     });
 
     it("should fails issuing the same asset", async () => {
       await expect(
-        supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata)
+        supply.issueAsset(asset.assetId, asset.owner, asset.co2e, asset.certId, asset.metadata)
       ).to.be.revertedWith("Error: asset already exists");
     });
 
     it("should fail if the certificate has not been issued", async () => {
       await expect(
-        supply.issueAsset(asset.id + 1, asset.owner, asset.co2, asset.cert + 1, asset.metadata)
+        supply.issueAsset(
+          asset.assetId + 1,
+          asset.owner,
+          asset.co2e,
+          asset.certId + 1,
+          asset.metadata
+        )
       ).to.be.revertedWith("Error: certificate does not exists");
     });
   });
 
   describe("asset operations", () => {
     const asset = {
-      id: 1010,
-      owner: 200,
-      co2: 500,
-      cert: 100,
+      assetId: 1000,
+      owner: "0xA271251D16B1e5224164663ADCE5e60e028595dC",
+      co2e: 500,
+      certId: 100,
       metadata: JSON.stringify({ issuer: 100 }),
     };
 
     beforeEach(async () => {
-      await supply.issueCertificate(asset.cert, "");
-      await supply.issueAsset(asset.id, asset.owner, asset.co2, asset.cert, asset.metadata);
-    });
-
-    describe("transfer ownership of asset", () => {
-      it("should change the owner of the asset", async () => {
-        await supply.transferOwnership(asset.id, asset.owner + 1);
-
-        const [owner, _, __, ___, ____] = await supply.assetInfo(asset.id);
-        expect(owner).to.equal(asset.owner + 1);
-      });
+      await supply.issueCertificate(asset.certId, "");
+      await supply.issueAsset(asset.assetId, asset.owner, asset.co2e, asset.certId, asset.metadata);
     });
 
     describe("add movement to asset", () => {
       const move = {
-        id: 1010,
+        moveId: 2000,
         lat: "80000",
         lng: "-4000",
-        co2: 200,
-        cert: 100,
+        co2e: 200,
+        certId: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
 
       beforeEach(async () => {
-        await supply.issueMovement(move.id, move.lat, move.lng, move.co2, move.cert, move.metadata);
-        await supply.addMovements(asset.id, [move.id]);
+        await supply.issueMovement(
+          move.moveId,
+          move.lat,
+          move.lng,
+          move.co2e,
+          move.certId,
+          move.metadata
+        );
+        await supply.addMovements(asset.assetId, [move.moveId]);
       });
 
       it("should not affect asset co2 emission", async () => {
-        const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-        expect(co2).to.equal(asset.co2);
+        const [_, __, co2e, ___, ____] = await supply.assetInfo(asset.assetId);
+        expect(co2e).to.equal(asset.co2e);
       });
 
       it("should be present in asset traceability", async () => {
-        const [[id], [lat], [lng]] = await supply.assetTraceability(asset.id);
-        expect(id).to.equal(move.id);
+        const [[moveId], [lat], [lng]] = await supply.assetTraceability(asset.assetId);
+        expect(moveId).to.equal(move.moveId);
         expect(lat).to.equal(move.lat);
         expect(lng).to.equal(move.lng);
       });
 
       it("should fails if same movement is added to the same asset", async () => {
-        await expect(supply.addMovements(asset.id, [move.id])).to.be.revertedWith(
+        await expect(supply.addMovements(asset.assetId, [move.moveId])).to.be.revertedWith(
           "Error: movement already added"
         );
       });
 
       it("should fail when added inexistent movement", async () => {
-        await expect(supply.addMovements(asset.id, [2002])).to.be.revertedWith(
+        await expect(supply.addMovements(asset.assetId, [2002])).to.be.revertedWith(
           "Error: can not add inexistent movement"
         );
       });
@@ -203,37 +208,43 @@ describe("ERC245", function () {
 
     describe("add composition to asset", () => {
       const parent = {
-        id: 1012,
-        owner: 200,
-        co2: 1000,
-        cert: 100,
+        assetId: 1012,
+        owner: "0xA355538257b8716f0f9c0f30F94cE82f5cd44a8b",
+        co2e: 1000,
+        certId: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
 
       beforeEach(async () => {
-        await supply.issueAsset(parent.id, parent.owner, parent.co2, parent.cert, parent.metadata);
-        await supply.addParents(asset.id, [parent.id], [100]);
+        await supply.issueAsset(
+          parent.assetId,
+          parent.owner,
+          parent.co2e,
+          parent.certId,
+          parent.metadata
+        );
+        await supply.addParents(asset.assetId, [parent.assetId], [100]);
       });
 
       it("should not affect asset co2 emission", async () => {
-        const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-        expect(co2).to.equal(asset.co2);
+        const [_, __, co2e, ___, ____] = await supply.assetInfo(asset.assetId);
+        expect(co2e).to.equal(asset.co2e);
       });
 
       it("should be present in asset traceability", async () => {
-        const [[id], [comp]] = await supply.assetComposition(asset.id);
-        expect(id).to.equal(parent.id);
-        expect(comp).to.equal(100);
+        const [[assetId], [percent]] = await supply.assetComposition(asset.assetId);
+        expect(assetId).to.equal(parent.assetId);
+        expect(percent).to.equal(100);
       });
 
       it("should fail if same parent is added to same asset", async () => {
-        await expect(supply.addParents(asset.id, [parent.id], [100])).to.be.revertedWith(
+        await expect(supply.addParents(asset.assetId, [parent.assetId], [100])).to.be.revertedWith(
           "Error: parent already present"
         );
       });
 
       it("should fail when added inexistent parent", async () => {
-        await expect(supply.addParents(asset.id, [2002], [100])).to.be.revertedWith(
+        await expect(supply.addParents(asset.assetId, [2002], [100])).to.be.revertedWith(
           "Error: can not add inexistent asset"
         );
       });
@@ -241,73 +252,85 @@ describe("ERC245", function () {
 
     describe("alteration to children", () => {
       const parent = {
-        id: 1012,
-        owner: 202,
-        co2: 1000,
-        cert: 100,
+        assetId: 1012,
+        owner: "0xA495ac289C5Ff8e9F665595653F295c9c9c4cacc",
+        co2e: 1000,
+        certId: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
 
       beforeEach(async () => {
-        await supply.issueAsset(parent.id, parent.owner, parent.co2, parent.cert, parent.metadata);
-        await supply.addParents(asset.id, [parent.id], [100]);
+        await supply.issueAsset(
+          parent.assetId,
+          parent.owner,
+          parent.co2e,
+          parent.certId,
+          parent.metadata
+        );
+        await supply.addParents(asset.assetId, [parent.assetId], [100]);
       });
 
       describe("when movement added to parent", () => {
         const move = {
-          id: 1010,
+          moveId: 1010,
           lat: "80000",
           lng: "-4000",
-          co2: 200,
-          cert: 100,
+          co2e: 200,
+          certId: 100,
           metadata: JSON.stringify({ issuer: 100 }),
         };
 
         beforeEach(async () => {
           await supply.issueMovement(
-            move.id,
+            move.moveId,
             move.lat,
             move.lng,
-            move.co2,
-            move.cert,
+            move.co2e,
+            move.certId,
             move.metadata
           );
-          await supply.addMovements(parent.id, [move.id]);
+          await supply.addMovements(parent.assetId, [move.moveId]);
         });
 
         it("should not affect parent co2 emission", async () => {
-          const [_, __, co2, ___, ____] = await supply.assetInfo(parent.id);
-          expect(co2).to.equal(parent.co2);
+          const [_, __, co2e, ___, ____] = await supply.assetInfo(parent.assetId);
+          expect(co2e).to.equal(parent.co2e);
         });
 
         it("should not affect asset co2 emission", async () => {
-          const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-          expect(co2).to.equal(asset.co2);
+          const [_, __, co2e, ___, ____] = await supply.assetInfo(asset.assetId);
+          expect(co2e).to.equal(asset.co2e);
         });
       });
 
       describe("when composition added to parent", () => {
         const grand = {
-          id: 1014,
-          owner: 200,
-          co2: 1500,
-          cert: 100,
+          assetId: 1014,
+          owner: "0xA495ac289C5Ff8e9F665595653F295c9c9c4cacc",
+          co2e: 1500,
+          certId: 100,
           metadata: JSON.stringify({ issuer: 100 }),
         };
 
         beforeEach(async () => {
-          await supply.issueAsset(grand.id, grand.owner, grand.co2, grand.cert, grand.metadata);
-          await supply.addParents(parent.id, [grand.id], [100]);
+          await supply.issueAsset(
+            grand.assetId,
+            grand.owner,
+            grand.co2e,
+            grand.certId,
+            grand.metadata
+          );
+          await supply.addParents(parent.assetId, [grand.assetId], [100]);
         });
 
         it("should not affect parent co2 emission", async () => {
-          const [_, __, co2, ___, ____] = await supply.assetInfo(parent.id);
-          expect(co2).to.equal(parent.co2);
+          const [_, __, co2e, ___, ____] = await supply.assetInfo(parent.assetId);
+          expect(co2e).to.equal(parent.co2e);
         });
 
         it("should not affect asset co2 emission", async () => {
-          const [_, __, co2, ___, ____] = await supply.assetInfo(asset.id);
-          expect(co2).to.equal(asset.co2);
+          const [_, __, co2e, ___, ____] = await supply.assetInfo(asset.assetId);
+          expect(co2e).to.equal(asset.co2e);
         });
       });
     });

@@ -4,11 +4,12 @@
 pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {IERC245Metadata} from "./extensions/IERC245Metadata.sol";
 import {IERC245} from "./IERC245.sol";
 import {Chain} from "./schema/IERC245Schema.sol";
 import {Array} from "../../utils/Collections.sol";
 
-abstract contract ERC245 is Context, IERC245 {
+contract ERC245 is Context, IERC245, IERC245Metadata {
     string private _name;
 
     mapping(uint256 => Chain.Movement) private _movements;
@@ -16,58 +17,38 @@ abstract contract ERC245 is Context, IERC245 {
     mapping(uint256 => Chain.Asset) private _assets;
 
     constructor(string memory name_) {
-        // assign contract metadata
         _name = name_;
     }
 
     /**
-     * @dev Returns the name of the smart contract issuer
+     * @dev Returns the supply chain name.
      */
     function name() public view virtual override returns (string memory) {
         return _name;
     }
 
     /**
-     * @dev Returns the id for the provided `signer`
+     * @dev Returns the information present in the asset (`owner`, `issuer`, `co2e`, `certId`, `metadata`)
      */
-    function idOf(address signer) public view virtual override returns (uint64);
-
-    /**
-     * @dev Returns the information present in the certificate (`issuer`, `metadata`)
-     */
-    function certificateInfo(uint256 id)
-        public
-        view
-        virtual
-        override
-        returns (uint64, string memory)
-    {
-        Chain.Certificate storage cert = _certs[id];
-        return (cert.issuer, cert.metadata);
-    }
-
-    /**
-     * @dev Returns the information present in the asset (`owner`, `issuer`, `co2`, `cert`, `metadata`)
-     */
-    function assetInfo(uint256 id)
+    function assetInfo(uint256 assetId)
         public
         view
         virtual
         override
         returns (
+            address,
+            address,
             uint64,
-            uint64,
-            uint256,
             uint256,
             string memory
         )
     {
-        Chain.Asset storage asset = _assets[id];
+        Chain.Asset storage asset = _assets[assetId];
         return (
             asset.owner,
             asset.issuer,
-            asset.co2,
-            asset.cert,
+            asset.co2e,
+            asset.certId,
             asset.metadata
         );
     }
@@ -76,16 +57,16 @@ abstract contract ERC245 is Context, IERC245 {
      * @dev Returns the asset composition in two same-sized lists (`asset`, `portion`)
      *
      * `asset`   -> asset id
-     * `portion` -> portion that `asset` is present in the child asset
+     * `portion` -> portion of the parent `asset` that conforms the current `asset`
      */
-    function assetComposition(uint256 id)
+    function assetComposition(uint256 assetId)
         public
         view
         virtual
         override
         returns (uint256[] memory, uint16[] memory)
     {
-        Chain.Asset storage asset = _assets[id];
+        Chain.Asset storage asset = _assets[assetId];
         uint16[] memory percent = new uint16[](asset.parents.length);
 
         for (uint256 i = 0; i < asset.parents.length; i++) {
@@ -102,7 +83,7 @@ abstract contract ERC245 is Context, IERC245 {
      * `lat`      -> geographical latitude
      * `lng`      -> geographical longitude
      */
-    function assetTraceability(uint256 id)
+    function assetTraceability(uint256 assetId)
         public
         view
         virtual
@@ -113,7 +94,7 @@ abstract contract ERC245 is Context, IERC245 {
             string[] memory
         )
     {
-        Chain.Asset storage asset = _assets[id];
+        Chain.Asset storage asset = _assets[assetId];
         string[] memory lats = new string[](asset.traceability.length);
         string[] memory lngs = new string[](asset.traceability.length);
 
@@ -126,155 +107,45 @@ abstract contract ERC245 is Context, IERC245 {
     }
 
     /**
-     * @dev Returns the information presented in the movement (`lat`, `lng`, `co2`, `cert`, `metadata`)
+     * @dev Returns the information present in the certificate (`issuer`, `metadata`)
      */
-    function movementInfo(uint256 id)
+    function certificateInfo(uint256 certId)
+        public
+        view
+        virtual
+        override
+        returns (address, string memory)
+    {
+        Chain.Certificate storage cert = _certs[certId];
+        return (cert.issuer, cert.metadata);
+    }
+
+    /**
+     * @dev Returns the information presented in the movement (`issuer`, `lat`, `lng`, `co2e`, `certId`, `metadata`)
+     */
+    function movementInfo(uint256 moveId)
         public
         view
         virtual
         override
         returns (
+            address,
+            string memory,
+            string memory,
             uint64,
-            string memory,
-            string memory,
-            uint256,
             uint256,
             string memory
         )
     {
-        Chain.Movement storage movement = _movements[id];
+        Chain.Movement storage movement = _movements[moveId];
         return (
             movement.issuer,
             movement.lat,
             movement.lng,
-            movement.co2,
-            movement.cert,
+            movement.co2e,
+            movement.certId,
             movement.metadata
         );
-    }
-
-    /**
-     * @dev See {IERC245-transferOwnership}
-     */
-    function transferOwnership(uint256 asset, uint64 recipient)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return _transferOwnership(asset, recipient);
-    }
-
-    /**
-     * @dev See {IERC245-issueCertificate}
-     */
-    function issueCertificate(uint256 id, string memory metadata)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return _issueCertificate(id, metadata);
-    }
-
-    /**
-     * @dev See {IERC245-issueAsset}
-     */
-    function issueAsset(
-        uint256 id,
-        uint64 owner,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
-    ) public virtual override returns (bool) {
-        return _issueAsset(id, owner, co2, cert, metadata);
-    }
-
-    /**
-     * @dev See {IERC245-issueMovement}
-     */
-    function issueMovement(
-        uint256 id,
-        string memory lat,
-        string memory lng,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
-    ) public virtual override returns (bool) {
-        return _issueMovement(id, lat, lng, co2, cert, metadata);
-    }
-
-    /**
-     * @dev See {IERC245-addMovements}
-     */
-    function addMovements(uint256 id, uint256[] memory movements)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return _addMovements(id, movements);
-    }
-
-    /**
-     * @dev See {IERC245-addParents}
-     */
-    function addParents(
-        uint256 id,
-        uint256[] memory parents,
-        uint16[] memory composition
-    ) public virtual override returns (bool) {
-        return _addParents(id, parents, composition);
-    }
-
-    /**
-     * @dev Transfers ownership of the `asset` to the `recipient`.
-     *
-     * NOTE: any signer can make a transaction on behalf of the owner.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _transferOwnership(uint256 id, uint64 recipient)
-        internal
-        virtual
-        returns (bool)
-    {
-        Chain.Asset storage asset = _assets[id];
-        require(asset.id != 0, "Error: asset does not exists");
-
-        uint64 sender = asset.owner;
-        asset.owner = recipient;
-        emit TransferOwnership(asset.id, sender, recipient, _msgSender());
-
-        return true;
-    }
-
-    /**
-     * @dev Issues a certificate in the supply chain.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {CertIssued} event.
-     */
-    function _issueCertificate(uint256 id, string memory metadata)
-        internal
-        virtual
-        returns (bool)
-    {
-        uint64 agent = idOf(_msgSender());
-
-        Chain.Certificate storage cert = _certs[id];
-        require(cert.id == 0, "Error: certificate already exists");
-
-        cert.id = id;
-        cert.issuer = agent;
-        cert.metadata = metadata;
-
-        emit CertIssued(cert.id, agent, _msgSender());
-
-        return true;
     }
 
     /**
@@ -284,31 +155,31 @@ abstract contract ERC245 is Context, IERC245 {
      *
      * Emits a {AssetIssued} event.
      */
-    function _issueAsset(
-        uint256 id,
-        uint64 owner,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
-    ) internal virtual returns (bool) {
-        uint64 issuer = idOf(_msgSender());
+    function issueAsset(
+        uint256 assetId,
+        address owner,
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
+    ) public virtual override returns (bool) {
+        return
+            _issueAsset(assetId, owner, _msgSender(), co2e, certId, metadata_);
+    }
 
-        Chain.Asset storage asset = _assets[id];
-        require(asset.id == 0, "Error: asset already exists");
-
-        Chain.Certificate storage certificate = _certs[cert];
-        require(certificate.id == cert, "Error: certificate does not exists");
-
-        asset.id = id;
-        asset.owner = owner;
-        asset.issuer = issuer;
-        asset.co2 = co2;
-        asset.cert = certificate.id;
-        asset.metadata = metadata;
-
-        emit AssetIssued(asset.id, issuer, _msgSender());
-
-        return true;
+    /**
+     * @dev Issues a certificate in the supply chain.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {CertIssued} event.
+     */
+    function issueCertificate(uint256 certId, string calldata metadata_)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        return _issueCertificate(certId, _msgSender(), metadata_);
     }
 
     /**
@@ -318,46 +189,143 @@ abstract contract ERC245 is Context, IERC245 {
      *
      * Emits a {MovementIssued} event.
      */
-    function _issueMovement(
-        uint256 id,
+    function issueMovement(
+        uint256 moveId,
         string memory lat,
         string memory lng,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
+    ) public virtual override returns (bool) {
+        return
+            _issueMovement(
+                moveId,
+                _msgSender(),
+                lat,
+                lng,
+                co2e,
+                certId,
+                metadata_
+            );
+    }
+
+    /**
+     * @dev Append existing movements to asset traceability.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {MovementAssigned} event.
+     */
+    function addMovements(uint256 assetId, uint256[] memory movements)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        return _addMovements(assetId, movements);
+    }
+
+    /**
+     * @dev Add existing assets to asset composition.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {ParentAssigned} event.
+     */
+    function addParents(
+        uint256 assetId,
+        uint256[] memory parents,
+        uint16[] memory composition
+    ) public virtual override returns (bool) {
+        return _addParents(assetId, parents, composition);
+    }
+
+    /**
+     * @dev See {IERC245-issueAsset}
+     */
+    function _issueAsset(
+        uint256 assetId,
+        address owner,
+        address issuer,
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
     ) internal virtual returns (bool) {
-        uint64 issuer = idOf(_msgSender());
+        Chain.Asset storage asset = _assets[assetId];
+        require(asset.id == 0, "Error: asset already exists");
 
-        Chain.Movement storage movement = _movements[id];
-        require(movement.id == 0, "Error: movement already exists");
+        Chain.Certificate storage certificate = _certs[certId];
+        require(certificate.id == certId, "Error: certificate does not exists");
 
-        Chain.Certificate storage certificate = _certs[cert];
-        require(certificate.id == cert, "Error: certificate does not exists");
+        asset.id = assetId;
+        asset.owner = owner;
+        asset.issuer = issuer;
+        asset.co2e = co2e;
+        asset.certId = certificate.id;
+        asset.metadata = metadata_;
 
-        movement.id = id;
-        movement.issuer = issuer;
-        movement.lat = lat;
-        movement.lng = lng;
-        movement.co2 = co2;
-        movement.cert = certificate.id;
-        movement.metadata = metadata;
-
-        emit MovementIssued(movement.id, issuer, _msgSender());
-
+        emit AssetIssued(asset.id, _msgSender());
         return true;
     }
 
     /**
-     * @dev Append existing movement to asset traceability.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
+     * @dev See {IERC245-issueCertificate}
      */
-    function _addMovements(uint256 id, uint256[] memory movements)
+    function _issueCertificate(
+        uint256 certId,
+        address issuer,
+        string memory metadata_
+    ) internal virtual returns (bool) {
+        Chain.Certificate storage cert = _certs[certId];
+        require(cert.id == 0, "Error: certificate already exists");
+
+        cert.id = certId;
+        cert.issuer = issuer;
+        cert.metadata = metadata_;
+
+        emit CertIssued(cert.id, _msgSender());
+        return true;
+    }
+
+    /**
+     * @dev See {IERC245-issueMovement}
+     */
+    function _issueMovement(
+        uint256 moveId,
+        address issuer,
+        string memory lat,
+        string memory lng,
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
+    ) internal virtual returns (bool) {
+        Chain.Movement storage movement = _movements[moveId];
+        require(movement.id == 0, "Error: movement already exists");
+
+        Chain.Certificate storage certificate = _certs[certId];
+        require(certificate.id == certId, "Error: certificate does not exists");
+
+        movement.id = moveId;
+        movement.issuer = issuer;
+        movement.lat = lat;
+        movement.lng = lng;
+        movement.co2e = co2e;
+        movement.certId = certificate.id;
+        movement.metadata = metadata_;
+
+        emit MovementIssued(movement.id, _msgSender());
+        return true;
+    }
+
+    /**
+     * @dev See {IERC245-addMovements}
+     */
+    function _addMovements(uint256 assetId, uint256[] memory movements)
         internal
         virtual
         returns (bool)
     {
-        Chain.Asset storage asset = _assets[id];
+        Chain.Asset storage asset = _assets[assetId];
 
         for (uint256 i = 0; i < movements.length; i++) {
             require(
@@ -369,22 +337,22 @@ abstract contract ERC245 is Context, IERC245 {
             require(movement.id != 0, "Error: can not add inexistent movement");
 
             asset.traceability.push(movement.id);
+
+            emit MovementAssigned(movement.id, assetId, _msgSender());
         }
 
         return true;
     }
 
     /**
-     * @dev Add existing assets to asset composition.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
+     * @dev See {IERC245-addParents}
      */
     function _addParents(
-        uint256 id,
+        uint256 assetId,
         uint256[] memory parents,
         uint16[] memory composition
     ) internal virtual returns (bool) {
-        Chain.Asset storage asset = _assets[id];
+        Chain.Asset storage asset = _assets[assetId];
 
         for (uint256 i = 0; i < parents.length; i++) {
             require(
@@ -397,22 +365,10 @@ abstract contract ERC245 is Context, IERC245 {
 
             asset.composition[parent.id] = composition[i];
             asset.parents.push(parent.id);
+
+            emit ParentAssigned(parent.id, assetId, _msgSender());
         }
 
         return true;
-    }
-}
-
-/**
- * @dev Example of ERC245 full implementation.
- *
- * NOTE: Can be used in a private network with same-role actors.
- */
-contract ERC245Private is ERC245 {
-    constructor(string memory name_) ERC245(name_) {}
-
-    function idOf(address) public pure override returns (uint64) {
-        // by mapping every signer to the same `id` assigns every `signer` the same role.
-        return 1;
     }
 }

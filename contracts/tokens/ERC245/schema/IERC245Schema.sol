@@ -7,8 +7,8 @@ library Chain {
     struct Certificate {
         // certificate unique identifier
         uint256 id;
-        // certificate issuer id
-        uint64 issuer;
+        // certificate issuer
+        address issuer;
         // certificate metadata
         string metadata;
     }
@@ -16,17 +16,17 @@ library Chain {
     struct Asset {
         // asset unique identifier
         uint256 id;
-        // asset owner id
-        uint64 owner;
-        // asset issuer id
-        uint64 issuer;
+        // asset owner
+        address owner;
+        // asset issuer
+        address issuer;
         // co2 emission (maybe on creation)
-        uint256 co2;
+        uint64 co2e;
         // creation co2 emission certificate
-        uint256 cert;
+        uint256 certId;
         // list of assets that composes this asset
         uint256[] parents;
-        // mapping of asset id to composition (sum represents 100%)
+        // mapping of asset id to composition representing the portion of the father that composes the asset.
         mapping(uint256 => uint16) composition;
         // list of locations of the asset in order
         uint256[] traceability;
@@ -38,15 +38,15 @@ library Chain {
         // movement unique identifier
         uint256 id;
         // movement issuer id
-        uint64 issuer;
+        address issuer;
         // latitude
         string lat;
         // longitude
         string lng;
         // co2 emission
-        uint256 co2;
+        uint64 co2e;
         // co2 emission certificate
-        uint256 cert;
+        uint256 certId;
         // movement metadata
         string metadata;
     }
