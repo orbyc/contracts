@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 
 describe("ERC245", function () {
   let supply;
-  let owner;
+  let owner, addr1;
 
   const supplyName = "Test ERC245 Supply Chain";
 
@@ -20,7 +20,7 @@ describe("ERC245", function () {
     supply = await ERC245.deploy(supplyName);
     await supply.deployed();
 
-    [owner, _, _, _] = await ethers.getSigners();
+    [owner, addr1, _, _] = await ethers.getSigners();
   });
 
   it("initializes the smart contract", async () => {
@@ -155,8 +155,20 @@ describe("ERC245", function () {
     };
 
     beforeEach(async () => {
+      asset.owner = owner.address;
       await supply.issueCertificate(asset.certId, "");
       await supply.issueAsset(asset.assetId, asset.owner, asset.co2e, asset.certId, asset.metadata);
+    });
+
+    describe("transfers", () => {
+      it("should change the owner when transfer is made", async () => {
+        await supply.transferFrom(owner.address, addr1.address, asset.assetId);
+
+        const [ownerAddr, issuerAddr] = await supply.assetInfo(asset.assetId);
+
+        expect(ownerAddr).to.equal(addr1.address);
+        expect(issuerAddr).to.equal(owner.address);
+      });
     });
 
     describe("add movement to asset", () => {

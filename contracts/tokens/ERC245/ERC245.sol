@@ -400,6 +400,6 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
 
         asset.owner = to;
 
-        emit Transfer(from, to, assetId);
+        emit TransferAsset(from, to, assetId);
     }
 }

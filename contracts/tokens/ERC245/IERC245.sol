@@ -10,7 +10,7 @@ interface IERC245 {
     /**
      * @dev Emitted when `asset` was issued by `signer`
      */
-    event Transfer(address from, address to, uint256 assetId);
+    event TransferAsset(address indexed from, address indexed to, uint256 indexed assetId);
 
     /**
      * @dev Emitted when `asset` was issued by `signer`
@@ -94,7 +94,7 @@ interface IERC245 {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Emits a {Transfer} event.
+     * Emits a {TransferAsset} event.
      */
     function transferFrom(
         address from,
