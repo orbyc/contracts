@@ -149,6 +149,21 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
     }
 
     /**
+     * @dev Transfers `asset` ownership.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 assetId
+    ) public virtual override {
+        _transferFrom(from, to, assetId);
+    }
+
+    /**
      * @dev Issues an asset in the supply chain.
      *
      * Returns a boolean value indicating whether the operation succeeded.
@@ -370,5 +385,21 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         }
 
         return true;
+    }
+
+    /**
+     * @dev See {IERC245-transferFrom}
+     */
+    function _transferFrom(
+        address from,
+        address to,
+        uint256 assetId
+    ) internal virtual {
+        Chain.Asset storage asset = _assets[assetId];
+        require(asset.owner == from, "ERC245: sender is not the asset owner");
+
+        asset.owner = to;
+
+        emit Transfer(from, to, assetId);
     }
 }

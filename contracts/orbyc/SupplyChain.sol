@@ -5,98 +5,78 @@ pragma solidity ^0.8.0;
 
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {ERC423} from "../security/ERC423/ERC423.sol";
-import {Array} from "../utils/Collections.sol";
-import {ERC245} from "../tokens/ERC245/ERC245.sol";
-import {Chain} from "../tokens/ERC245/schema/IERC245Schema.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-library Multi {
-    struct Transfer {
-        // asset id
-        uint256 asset;
-        // recipient agent id
-        uint64 recipient;
-        // agent id => hasSigned
-        mapping(uint64 => bool) signatures;
-    }
+import {ERC423} from "../security/ERC423/ERC423.sol";
+import {ERC245} from "../tokens/ERC245/ERC245.sol";
+import {Array} from "../utils/Collections.sol";
+
+struct MultiTransfer {
+    // asset id
+    uint256 assetId;
+    // receiver address
+    address receiver;
+    // signer address => hasSigned
+    mapping(address => bool) signatures;
 }
 
-contract SupplyChain is ERC245, ERC423, Pausable {
+contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
     /**
      * Roles
      */
-
     uint64 public ADMIN_ROLE = 0x01 << 1;
-    uint64 public EDITOR_ROLE = 0x01 << 2;
-    uint64 public PROVIDER_ROLE = 0x01 << 3;
+    uint64 public PROVIDER_ROLE = 0x01 << 2;
+    uint64 public ASSET_ISSUER_ROLE = 0x01 << 3;
     uint64 public CERT_ISSUER_ROLE = 0x01 << 4;
-    uint64 public ASSET_ISSUER_ROLE = 0x01 << 5;
-    uint64 public MOVEMENT_ISSUER_ROLE = 0x01 << 6;
+    uint64 public MOVEMENT_ISSUER_ROLE = 0x01 << 5;
 
     /**
      * Agents
      */
-
-    uint64 public ORBYC_AGENT = 0x01;
-    uint64 public NULL_AGENT = 0xfffffffffff;
+    address public ORBYC_ACCOUNT = 0x1001bdC1076D31806222A2e826FB6819FFb3b809;
 
     /**
      * Privates
      */
-
     // mapping from asset id to ownership multitransfer
-    mapping(uint256 => Multi.Transfer) private _transfers;
+    mapping(uint256 => MultiTransfer) private _transfers;
 
     /**
      * Modifiers
      */
-
-    modifier nonNull(uint64 agent) {
-        require(agent != NULL_AGENT, "Error: can not operate over null agent");
-        _;
-    }
-
-    modifier validAddress(address signer) {
-        require(
-            idOf(signer) != NULL_AGENT,
-            "Error: agent is null address, can not operate"
-        );
-        _;
-    }
-
-    modifier onlyIssuer(uint256 id) {
-        uint64 issuer;
-        (, issuer, , , ) = assetInfo(id);
-        uint64 agent = idOf(_msgSender());
-        require(agent == issuer, "Error: agent is not issuer");
+    modifier onlyIssuer(uint256 assetId) {
+        address issuer;
+        (, issuer, , , ) = assetInfo(assetId);
+        address account = accountOf(_msgSender());
+        require(account == issuer, "Error: account is not the asset issuer");
         _;
     }
 
     /**
      * Constructor
      */
-
-    constructor(string memory name_) ERC245(name_) ERC423(name_) {
+    constructor(string memory name_, string memory symbol_)
+        ERC721(name_, symbol_)
+        ERC245(name_)
+        ERC423(name_)
+    {
         // define roles
         _defineRole(
             ADMIN_ROLE,
             '{"name":"ADMIN", "description":"allowed to issue and assign roles"}'
         );
         _defineRole(
-            EDITOR_ROLE,
-            '{"name":"EDITOR", "description":"allowed to register addresses as agents"}'
-        );
-        _defineRole(
             PROVIDER_ROLE,
-            '{"name":"PROVIDER", "description":"allowed to hold assets"}'
+            '{"name":"PROVIDER", "description":"allowed to issue agents with client role"}'
+        );
+
+        _defineRole(
+            ASSET_ISSUER_ROLE,
+            '{"name":"ASSET_ISSUER", "description":"allowed to issue assets"}'
         );
         _defineRole(
             CERT_ISSUER_ROLE,
             '{"name":"CERT_ISSUER", "description":"allowed to issue certificates"}'
-        );
-        _defineRole(
-            ASSET_ISSUER_ROLE,
-            '{"name":"ASSET_ISSUER", "description":"allowed to issue assets"}'
         );
         _defineRole(
             MOVEMENT_ISSUER_ROLE,
@@ -106,39 +86,70 @@ contract SupplyChain is ERC245, ERC423, Pausable {
         // define Orbyc agent
         _defineAgent(
             _msgSender(),
-            ORBYC_AGENT,
+            ORBYC_ACCOUNT,
             '{"name":"Orbyc Default Admin"}'
         );
 
         // grant roles to orbyc agent
-        _grantRole(ORBYC_AGENT, ADMIN_ROLE);
-        _grantRole(ORBYC_AGENT, EDITOR_ROLE);
-        _grantRole(ORBYC_AGENT, PROVIDER_ROLE);
-        _grantRole(ORBYC_AGENT, CERT_ISSUER_ROLE);
-        _grantRole(ORBYC_AGENT, ASSET_ISSUER_ROLE);
-        _grantRole(ORBYC_AGENT, MOVEMENT_ISSUER_ROLE);
+        _grantRole(ORBYC_ACCOUNT, ADMIN_ROLE);
+        _grantRole(ORBYC_ACCOUNT, PROVIDER_ROLE);
+        _grantRole(ORBYC_ACCOUNT, ASSET_ISSUER_ROLE);
+        _grantRole(ORBYC_ACCOUNT, CERT_ISSUER_ROLE);
+        _grantRole(ORBYC_ACCOUNT, MOVEMENT_ISSUER_ROLE);
     }
-
-    /**
-     * ERC245
-     */
 
     function name()
         public
         view
-        override(ERC245, ERC423)
+        override(ERC245, ERC423, ERC721)
         returns (string memory)
     {
         return ERC245.name();
     }
 
-    function idOf(address signer)
+    /**
+     * ERC721
+     */
+    function balanceOf(address owner)
         public
         view
-        override(ERC245, ERC423)
-        returns (uint64)
+        virtual
+        override
+        returns (uint256)
     {
-        return ERC423.idOf(signer);
+        address account = accountOf(owner);
+        return super.balanceOf(account);
+    }
+
+    function _baseURI() internal view virtual override returns (string memory) {
+        return "https://orbyc.com/#/";
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual override(ERC245, ERC721) {
+        address sender = accountOf(from);
+        address receiver = accountOf(to);
+
+        if (!_requireMultisig(sender, receiver, tokenId)) {
+            return;
+        }
+
+        ERC245.transferFrom(sender, receiver, tokenId);
+        ERC721.transferFrom(sender, receiver, tokenId);
+    }
+
+    function _isApprovedOrOwner(address spender, uint256 tokenId)
+        internal
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        address account = accountOf(spender);
+        return super._isApprovedOrOwner(account, tokenId);
     }
 
     /**
@@ -147,19 +158,17 @@ contract SupplyChain is ERC245, ERC423, Pausable {
      * Each ownership transfer must be approved for the `owner` and
      * the `issuer` of the address.
      */
-    function getSigners(uint256 asset)
+    function _getSigners(uint256 assetId)
         internal
         virtual
-        returns (uint64[] memory)
+        returns (address[] memory)
     {
-        uint64 owner;
-        uint64 issuer;
-        (owner, issuer, , , ) = assetInfo(asset);
-
-        uint64[] memory signers = new uint64[](2);
+        address owner;
+        address issuer;
+        (owner, issuer, , , ) = assetInfo(assetId);
+        address[] memory signers = new address[](2);
         signers[0] = owner;
         signers[1] = issuer;
-
         return signers;
     }
 
@@ -167,92 +176,89 @@ contract SupplyChain is ERC245, ERC423, Pausable {
      * @dev Multisig implementation for the transfer method.
      *
      * This method will use the virtual `getSigners` to create a transaction proposal.
-     * All the signers must perform a transfer in order to asset ownership change.
+     * All the si gners must perform a transfer in order to asset ownership change.
      */
-    function transferOwnership(uint256 asset, uint64 recipient)
-        public
-        override
-        whenNotPaused
-        returns (bool)
-    {
-        // get signer id
-        uint64 signer = idOf(_msgSender());
+    function _requireMultisig(
+        address sender,
+        address receiver,
+        uint256 assetId
+    ) internal virtual returns (bool) {
+        address[] memory signers = _getSigners(assetId);
 
-        // get transaction valid signers
-        uint64[] memory signers = getSigners(asset);
-
-        // validate signer
+        // check sender is one of the signers
         require(
-            Array.contains(getSigners(asset), signer),
+            Array.contains(signers, sender),
             "Error: signer not valid for this asset"
         );
 
         // get transaction from storage
-        Multi.Transfer storage transaction = _transfers[asset];
+        MultiTransfer storage transaction = _transfers[assetId];
 
         // validate signer has not sign
         require(
-            !transaction.signatures[signer],
+            !transaction.signatures[sender],
             "Error: signer already sign this transfer"
         );
 
-        // reset transfer if recipient has change
-        if (transaction.recipient != recipient) {
-            transaction.recipient = recipient;
-            transaction.asset = asset;
-
+        // reset transfer if receiver has change
+        if (transaction.receiver != receiver) {
+            transaction.receiver = receiver;
+            transaction.assetId = assetId;
+            // reset all signatures
             for (uint256 i = 0; i < signers.length; i++) {
                 delete transaction.signatures[signers[i]];
             }
         }
 
         // update signers signature as approval
-        transaction.signatures[signer] = true;
+        transaction.signatures[sender] = true;
 
         // return if there are missing signatures
         for (uint256 i = 0; i < signers.length; i++) {
             if (!transaction.signatures[signers[i]]) {
-                // emit {Transfer} event
-                emit TransferOwnership(asset, signer, recipient, _msgSender());
-                // return sign succeed
-                return true;
+                // return false as multisig is not complete
+                return false;
             }
         }
 
-        // clear transaction recipient
-        transaction.recipient = 0;
-
-        // return the parent transfer execution
-        return super.transferOwnership(asset, recipient);
+        // return true as multisig is complete
+        return true;
     }
 
-    function issueCertificate(uint256 id, string memory metadata)
+    /**
+     * ERC245
+     */
+    function issueAsset(
+        uint256 assetId,
+        address owner,
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
+    ) public override onlyRole(ASSET_ISSUER_ROLE) whenNotPaused returns (bool) {
+        address issuer = accountOf(_msgSender());
+        _mint(owner, assetId);
+        return
+            super._issueAsset(assetId, owner, issuer, co2e, certId, metadata_);
+    }
+
+    function issueCertificate(uint256 certId, string calldata metadata_)
         public
         override
         onlyRole(CERT_ISSUER_ROLE)
         whenNotPaused
         returns (bool)
     {
-        return super.issueCertificate(id, metadata);
-    }
-
-    function issueAsset(
-        uint256 id,
-        uint64 owner,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
-    ) public override onlyRole(ASSET_ISSUER_ROLE) whenNotPaused returns (bool) {
-        return super.issueAsset(id, owner, co2, cert, metadata);
+        address issuer = accountOf(_msgSender());
+        return super._issueCertificate(certId, issuer, metadata_);
     }
 
     function issueMovement(
-        uint256 id,
+        uint256 moveId,
         string memory lat,
         string memory lng,
-        uint256 co2,
-        uint256 cert,
-        string memory metadata
+        uint64 co2e,
+        uint256 certId,
+        string memory metadata_
     )
         public
         override
@@ -260,84 +266,88 @@ contract SupplyChain is ERC245, ERC423, Pausable {
         whenNotPaused
         returns (bool)
     {
-        return super.issueMovement(id, lat, lng, co2, cert, metadata);
+        address issuer = accountOf(_msgSender());
+        return
+            super._issueMovement(
+                moveId,
+                issuer,
+                lat,
+                lng,
+                co2e,
+                certId,
+                metadata_
+            );
     }
 
-    function addMovements(uint256 id, uint256[] memory transports)
+    function addMovements(uint256 assetId, uint256[] memory movements)
         public
         virtual
         override
-        onlyIssuer(id)
+        onlyIssuer(assetId)
         whenNotPaused
         returns (bool)
     {
-        return super.addMovements(id, transports);
+        return super.addMovements(assetId, movements);
     }
 
     function addParents(
-        uint256 id,
+        uint256 assetId,
         uint256[] memory parents,
         uint16[] memory composition
-    ) public override onlyIssuer(id) whenNotPaused returns (bool) {
-        return super.addParents(id, parents, composition);
+    ) public override onlyIssuer(assetId) whenNotPaused returns (bool) {
+        return super.addParents(assetId, parents, composition);
     }
 
     /**
      * ERC423
      */
-
-    function defineRole(uint64 role, string memory info)
-        public
-        override
-        onlyRole(ADMIN_ROLE)
-        returns (bool)
-    {
-        return super.defineRole(role, info);
-    }
-
     function defineAgent(
         address agent,
-        uint64 id,
-        string memory info
-    ) public override onlyRole(EDITOR_ROLE) validAddress(agent) returns (bool) {
-        return super.defineAgent(agent, id, info);
+        address account,
+        string memory metadata_
+    ) public override onlyRole(ADMIN_ROLE) validAgent(agent) returns (bool) {
+        return super.defineAgent(agent, account, metadata_);
     }
 
-    function grantRole(uint64 id, uint64 role)
+    function removeAgent(address agent)
         public
         override
         onlyRole(ADMIN_ROLE)
-        nonNull(id)
         returns (bool)
     {
-        return super.grantRole(id, role);
+        return super.removeAgent(agent);
     }
 
-    function revokeRole(uint64 id, uint64 role)
+    function defineRole(uint256 role, string memory metadata_)
         public
         override
         onlyRole(ADMIN_ROLE)
-        nonNull(id)
         returns (bool)
     {
-        return super.revokeRole(id, role);
+        return super.defineRole(role, metadata_);
     }
 
-    /**
-     * @dev Banns an address making it impossible to opperate again
-     */
-    function bannAddress(address agent)
+    function grantRole(address account, uint256 role)
         public
+        override
         onlyRole(ADMIN_ROLE)
         returns (bool)
     {
-        return _defineAgent(agent, NULL_AGENT, "...");
+        return super.grantRole(account, role);
+    }
+
+    function revokeRole(address account, uint256 role)
+        public
+        override
+        onlyRole(ADMIN_ROLE)
+        returns (bool)
+    {
+        return super.revokeRole(account, role);
     }
 
     /**
      * Pausable
      */
-
     function Pause() public onlyRole(ADMIN_ROLE) {
         _pause();
     }

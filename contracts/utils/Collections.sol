@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 library Array {
-    function contains(uint64[] memory collection, uint64 element)
+    function contains(address[] memory collection, address element)
         public
         pure
         returns (bool)

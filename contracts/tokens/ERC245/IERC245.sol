@@ -10,6 +10,11 @@ interface IERC245 {
     /**
      * @dev Emitted when `asset` was issued by `signer`
      */
+    event Transfer(address from, address to, uint256 assetId);
+
+    /**
+     * @dev Emitted when `asset` was issued by `signer`
+     */
     event AssetIssued(uint256 assetId, address signer);
     /**
      * @dev Emitted when `certificate` was issued by `signer`
@@ -83,6 +88,19 @@ interface IERC245 {
         uint256,
         string memory
     );
+
+    /**
+     * @dev Transfers `asset` ownership.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 assetId
+    ) external;
 
     /**
      * @dev Issues an asset in the supply chain.

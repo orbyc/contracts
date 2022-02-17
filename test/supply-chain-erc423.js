@@ -5,11 +5,11 @@ describe("Orbyc SupplyChain ERC423", function () {
   let supplyChain;
   let owner, addr1, addr2, addr3;
 
-  let adminRole, editorRole, orbycAgent, nullAgent;
+  let adminRole, providerRole, orbycAccount;
 
-  const agent1 = 1001;
-  const agent2 = 1002;
-  const agent3 = 1003;
+  const account1 = "0x122733e2e7c995732f444f7fD77E0715D6448E09";
+  const account2 = "0x12fbeFEa020E81B0ECb8ed92eEBC5276B1D25a53";
+  const account3 = "0x12345982421011440aAC0c42E9A64490a378a316";
 
   beforeEach(async () => {
     const Array = await ethers.getContractFactory("Array");
@@ -27,49 +27,46 @@ describe("Orbyc SupplyChain ERC423", function () {
     [owner, addr1, addr2, addr3] = await ethers.getSigners();
 
     adminRole = await supplyChain.ADMIN_ROLE();
-    editorRole = await supplyChain.EDITOR_ROLE();
-    orbycAgent = await supplyChain.ORBYC_AGENT();
-    nullAgent = await supplyChain.NULL_AGENT();
+    providerRole = await supplyChain.PROVIDER_ROLE();
+    orbycAccount = await supplyChain.ORBYC_ACCOUNT();
   });
 
   it("initializes the smart contract", async () => {
-    const agent = await supplyChain.idOf(owner.address);
-    expect(agent).to.equal(orbycAgent);
+    const agent = await supplyChain.accountOf(owner.address);
+    expect(agent).to.equal(orbycAccount);
 
     const isAdmin = await supplyChain.hasRole(agent, adminRole);
-    const isEditor = await supplyChain.hasRole(agent, editorRole);
-    expect(isAdmin && isEditor).to.equal(true);
+    expect(isAdmin).to.equal(true);
   });
 
   describe("role permissions", () => {
-    const role1 = 100;
+    const role1 = 1 << 10;
 
     beforeEach(async () => {
-      await supplyChain.defineAgent(addr1.address, agent1, "");
-      await supplyChain.defineAgent(addr2.address, agent2, "");
+      await supplyChain.defineAgent(addr1.address, account1, "");
+      await supplyChain.defineAgent(addr2.address, account2, "");
 
-      await supplyChain.grantRole(agent1, adminRole);
-      await supplyChain.grantRole(agent2, editorRole);
+      await supplyChain.grantRole(account1, adminRole);
     });
 
     describe("agent and role registration", function () {
-      it("should succeed if agent1 with role admin try to register a role", async () => {
+      it("should succeed if account 1 with role admin tries to register a role", async () => {
         await supplyChain.connect(addr1).defineRole(role1, "defined");
         expect(await supplyChain.roleInfo(role1)).to.equal("defined");
       });
 
-      it("should fail if agent1 with role admin try to register an agent", async () => {
+      it("should succeed if account 1 with role admin tries to register an agent", async () => {
+        await supplyChain.connect(addr1).defineAgent(addr3.address, account3, "defined");
+        expect(await supplyChain.accountInfo(account3)).to.equal("defined");
+      });
+
+      it("should fail if account 2 with no role tries to register an agent", async () => {
         await expect(
-          supplyChain.connect(addr1).defineAgent(addr3.address, agent3, "")
+          supplyChain.connect(addr2).defineAgent(addr3.address, account3, "")
         ).to.be.revertedWith("Error: agent has not the required role");
       });
 
-      it("should succeed if agent2 with role editor try to register an agent", async () => {
-        await supplyChain.connect(addr2).defineAgent(addr3.address, agent3, "defined");
-        expect(await supplyChain.agentInfo(agent3)).to.equal("defined");
-      });
-
-      it("should fails if agent2 with role editor try to register a role", async () => {
+      it("should fails if account 2 with no role tries to register a role", async () => {
         await expect(supplyChain.connect(addr2).defineRole(role1, "")).to.be.revertedWith(
           "Error: agent has not the required role"
         );
@@ -78,69 +75,60 @@ describe("Orbyc SupplyChain ERC423", function () {
 
     describe("role grant and revocation", function () {
       beforeEach(async () => {
-        await supplyChain.defineAgent(addr3.address, agent3, "");
+        await supplyChain.defineAgent(addr3.address, account3, "");
+        await supplyChain.grantRole(account2, providerRole);
       });
 
-      it("should fail if agent2 with role editor try to grant or revoke role", async () => {
-        await expect(supplyChain.connect(addr2).grantRole(agent3, adminRole)).to.be.revertedWith(
+      it("should succeed if agent1 with role admin tries to grant or revoke role", async () => {
+        await supplyChain.connect(addr1).grantRole(account3, adminRole);
+        await supplyChain.connect(addr1).revokeRole(account2, providerRole);
+
+        expect(await supplyChain.hasRole(account3, adminRole)).to.equal(true);
+        expect(await supplyChain.hasRole(account2, providerRole)).to.equal(false);
+      });
+
+      it("should fail if agent2 with no role tries to grant or revoke role", async () => {
+        await expect(supplyChain.connect(addr2).grantRole(account3, adminRole)).to.be.revertedWith(
           "Error: agent has not the required role"
         );
 
-        await expect(supplyChain.connect(addr2).revokeRole(agent3, adminRole)).to.be.revertedWith(
+        await expect(supplyChain.connect(addr2).revokeRole(account3, adminRole)).to.be.revertedWith(
           "Error: agent has not the required role"
         );
-      });
-
-      it("should succeed if agent1 with role admin try to grant or revoke role", async () => {
-        await supplyChain.connect(addr1).grantRole(agent3, adminRole);
-        await supplyChain.connect(addr1).revokeRole(agent2, editorRole);
-
-        expect(await supplyChain.hasRole(agent3, adminRole)).to.equal(true);
-        expect(await supplyChain.hasRole(agent2, editorRole)).to.equal(false);
       });
     });
   });
 
-  describe("banning addresses", () => {
+  describe("remove agents", () => {
     beforeEach(async () => {
-      await supplyChain.defineAgent(addr1.address, agent1, "");
-      await supplyChain.defineAgent(addr2.address, agent2, "");
+      await supplyChain.defineAgent(addr1.address, account1, "");
+      await supplyChain.defineAgent(addr2.address, account2, "");
 
-      await supplyChain.grantRole(agent1, adminRole);
+      await supplyChain.grantRole(account1, adminRole);
     });
 
-    describe("when agent has not admin role", async () => {
-      it("should fail if try to bann an address", async () => {
-        await expect(supplyChain.connect(addr2).bannAddress(addr1.address)).to.be.revertedWith(
+    describe("when account has not admin role", async () => {
+      it("should fail if try to remove agent", async () => {
+        await expect(supplyChain.connect(addr2).removeAgent(addr1.address)).to.be.revertedWith(
           "Error: agent has not the required role"
         );
       });
     });
 
-    describe("when agent has admin and editor role", async () => {
+    describe("when account has admin role", async () => {
       beforeEach(async () => {
-        await supplyChain.bannAddress(addr1.address);
+        await supplyChain.removeAgent(addr1.address);
       });
 
-      it("should associate address1 to nullAgent", async () => {
-        expect(await supplyChain.idOf(addr1.address)).to.equal(nullAgent);
+      it("should fail when trying to get account of agent", async () => {
+        await expect(supplyChain.accountOf(addr1.address)).to.be.revertedWith(
+          "ERC423: agent has been removed"
+        );
       });
 
       it("should fail when defining another agent with address1", async () => {
-        await expect(supplyChain.defineAgent(addr1.address, agent1, "")).to.be.revertedWith(
-          "Error: agent is null address, can not operate"
-        );
-      });
-
-      it("should fail when grant roles to nullAddress", async () => {
-        await expect(supplyChain.grantRole(nullAgent, adminRole)).to.be.revertedWith(
-          "Error: can not operate over null agent"
-        );
-      });
-
-      it("should fail when revoke roles from nullAddress", async () => {
-        await expect(supplyChain.revokeRole(nullAgent, adminRole)).to.be.revertedWith(
-          "Error: can not operate over null agent"
+        await expect(supplyChain.defineAgent(addr1.address, account1, "")).to.be.revertedWith(
+          "ERC423: agent has been removed"
         );
       });
     });
