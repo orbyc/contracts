@@ -45,12 +45,23 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
      * Modifiers
      */
     modifier onlyIssuer(uint256 assetId) {
-        address issuer;
-        (, issuer, , , ) = assetInfo(assetId);
+        (, address issuer, , , ) = assetInfo(assetId);
         address account = accountOf(_msgSender());
         require(account == issuer, "Error: account is not the asset issuer");
         _;
     }
+
+    /**
+     * Events
+     */
+    /**
+     * @dev Emitted when `asset` was sent by `signer`
+     */
+    event SignatureReceived(
+        address indexed from,
+        address indexed to,
+        uint256 indexed tokenId
+    );
 
     /**
      * Constructor
@@ -129,7 +140,7 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         address from,
         address to,
         uint256 tokenId
-    ) public virtual override(ERC245, ERC721) {
+    ) public virtual override(ERC245, ERC721) whenNotPaused {
         address sender = accountOf(from);
         address receiver = accountOf(to);
 
@@ -163,12 +174,12 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         virtual
         returns (address[] memory)
     {
-        address owner;
-        address issuer;
-        (owner, issuer, , , ) = assetInfo(assetId);
+        (address owner, address issuer, , , ) = assetInfo(assetId);
+
         address[] memory signers = new address[](2);
         signers[0] = owner;
         signers[1] = issuer;
+
         return signers;
     }
 
@@ -176,7 +187,9 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
      * @dev Multisig implementation for the transfer method.
      *
      * This method will use the virtual `getSigners` to create a transaction proposal.
-     * All the si gners must perform a transfer in order to asset ownership change.
+     * All the signers must perform a transfer in order to asset ownership change.
+     *
+     * emits {SignatureReceived} when transfer is performed but not completed
      */
     function _requireMultisig(
         address sender,
@@ -194,7 +207,7 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         // get transaction from storage
         MultiTransfer storage transaction = _transfers[assetId];
 
-        // validate signer has not sign
+        // validate signer has not sign yet
         require(
             !transaction.signatures[sender],
             "Error: signer already sign this transfer"
@@ -216,6 +229,8 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         // return if there are missing signatures
         for (uint256 i = 0; i < signers.length; i++) {
             if (!transaction.signatures[signers[i]]) {
+                emit SignatureReceived(sender, receiver, assetId);
+
                 // return false as multisig is not complete
                 return false;
             }
@@ -277,6 +292,16 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
                 certId,
                 metadata_
             );
+    }
+
+    function addCertificates(uint256 assetId, uint256[] memory certificates)
+        public
+        virtual
+        override
+        onlyIssuer(assetId)
+        returns (bool)
+    {
+        return super.addCertificates(assetId, certificates);
     }
 
     function addMovements(uint256 assetId, uint256[] memory movements)

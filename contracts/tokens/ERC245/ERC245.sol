@@ -54,6 +54,23 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
     }
 
     /**
+     * @dev Returns the asset certificates in a `certificate` list
+     *
+     * `certificate` -> certificate id
+     */
+    function assetCertificates(uint256 assetId)
+        public
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
+        Chain.Asset storage asset = _assets[assetId];
+
+        return asset.certificates;
+    }
+
+    /**
      * @dev Returns the asset composition in two same-sized lists (`asset`, `portion`)
      *
      * `asset`   -> asset id
@@ -229,6 +246,22 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
+     * Emits a {CertificateAssigned} event.
+     */
+    function addCertificates(uint256 assetId, uint256[] memory certificates)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        return _addCertificates(assetId, certificates);
+    }
+
+    /**
+     * @dev Append existing movements to asset traceability.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
      * Emits a {MovementAssigned} event.
      */
     function addMovements(uint256 assetId, uint256[] memory movements)
@@ -329,6 +362,33 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         movement.metadata = metadata_;
 
         emit MovementIssued(movement.id, _msgSender());
+        return true;
+    }
+
+    function _addCertificates(uint256 assetId, uint256[] memory certificates)
+        internal
+        virtual
+        returns (bool)
+    {
+        Chain.Asset storage asset = _assets[assetId];
+
+        for (uint256 i = 0; i < certificates.length; i++) {
+            require(
+                !Array.contains(asset.certificates, certificates[i]),
+                "Error: certificate already added"
+            );
+
+            Chain.Certificate storage certificate = _certs[certificates[i]];
+            require(
+                certificate.id != 0,
+                "Error: can not add inexistent certificate"
+            );
+
+            asset.certificates.push(certificate.id);
+
+            emit CertificateAssigned(certificate.id, assetId, _msgSender());
+        }
+
         return true;
     }
 

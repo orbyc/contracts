@@ -24,6 +24,8 @@ library Chain {
         uint64 co2e;
         // creation co2 emission certificate
         uint256 certId;
+        // list of other certificates
+        uint256[] certificates;
         // list of assets that composes this asset
         uint256[] parents;
         // mapping of asset id to composition representing the portion of the father that composes the asset.

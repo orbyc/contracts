@@ -8,7 +8,7 @@ pragma solidity ^0.8.0;
  */
 interface IERC245 {
     /**
-     * @dev Emitted when `asset` was issued by `signer`
+     * @dev Emitted when `asset` is transfered by `from` sender `to` recipient
      */
     event TransferAsset(address indexed from, address indexed to, uint256 indexed assetId);
 
@@ -25,6 +25,10 @@ interface IERC245 {
      */
     event MovementIssued(uint256 moveId, address signer);
      
+    /**
+     * @dev Emitted when `certificate` is assigned to `asset` by `signer`
+     */
+    event CertificateAssigned(uint256 certId, uint256 assetId, address signer);
     /**
      * @dev Emitted when `movement` is assigned to `asset` by `signer`
      */
@@ -44,6 +48,13 @@ interface IERC245 {
         uint256,
         string memory
     );
+
+    /**
+     * @dev Returns the asset certificates in a `certificate` list
+     * 
+     * `certificate` -> certificate id
+     */
+    function assetCertificates(uint256 assetId) external view returns (uint256[] memory);
 
     /**
      * @dev Returns the asset composition in two same-sized lists (`asset`, `portion`)
@@ -143,6 +154,18 @@ interface IERC245 {
         uint64 co2e,
         uint256 certId,
         string memory metadata_
+    ) external returns (bool);
+
+    /**
+     * @dev Append existing movements to asset traceability.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {CertificateAssigned} event.
+     */
+    function addCertificates(
+        uint256 assetId, 
+        uint256[] memory certificates
     ) external returns (bool);
 
     /**
