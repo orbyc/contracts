@@ -26,12 +26,12 @@ library Chain {
         uint256 certId;
         // list of other certificates
         uint256[] certificates;
+        // list of locations of the asset in order
+        uint256[] traceability;
         // list of assets that composes this asset
         uint256[] parents;
         // mapping of asset id to composition representing the portion of the father that composes the asset.
         mapping(uint256 => uint16) composition;
-        // list of locations of the asset in order
-        uint256[] traceability;
         // asset metadata
         string metadata;
     }
