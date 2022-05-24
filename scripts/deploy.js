@@ -10,7 +10,7 @@ async function main() {
       Array: array.address,
     },
   });
-  const supply = await SupplyChain.deploy("Orbyc Supply Chain");
+  const supply = await SupplyChain.deploy("Orbyc Supply Chain", "OSC");
   await supply.deployed();
 
   console.log("Supply Chain deployed to:", supply.address);
