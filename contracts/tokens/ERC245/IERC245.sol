@@ -15,20 +15,24 @@ interface IERC245 {
     /**
      * @dev Emitted when `asset` was issued by `signer`
      */
-    event AssetIssued(uint256 assetId, address signer);
+    event AssetIssued(uint256 assetId, address indexed signer);
     /**
      * @dev Emitted when `certificate` was issued by `signer`
      */
-    event CertIssued(uint256 certId, address signer);
+    event CertIssued(uint256 certId, address indexed signer);
     /**
      * @dev Emitted when `movement` was issued by `signer`
      */
-    event MovementIssued(uint256 moveId, address signer);
+    event MovementIssued(uint256 moveId, address indexed signer);
      
     /**
      * @dev Emitted when `certificate` is assigned to `asset` by `signer`
      */
-    event CertificateAssigned(uint256 certId, uint256 assetId, address signer);
+    event AssetCertificateAssigned(uint256 certId, uint256 assetId, address signer);
+    /**
+     * @dev Emitted when `certificate` is assigned to `movement` by `signer`
+     */
+    event MovementCertificateAssigned(uint256 certId, uint256 moveId, address signer);
     /**
      * @dev Emitted when `movement` is assigned to `asset` by `signer`
      */
@@ -57,6 +61,13 @@ interface IERC245 {
     function assetCertificates(uint256 assetId) external view returns (uint256[] memory);
 
     /**
+     * @dev Returns the movement certificates in a `certificate` list
+     * 
+     * `certificate` -> certificate id
+     */
+    function movementCertificates(uint256 moveId) external view returns (uint256[] memory);
+
+    /**
      * @dev Returns the asset composition in two same-sized lists (`asset`, `portion`)
      * 
      * `asset`   -> asset id
@@ -74,11 +85,7 @@ interface IERC245 {
      * `lat`      -> geographical latitude
      * `lng`      -> geographical longitude
      */
-    function assetTraceability(uint256 assetId) external view  returns (
-        uint256[] memory,
-        string[] memory,
-        string[] memory
-    );
+    function assetTraceability(uint256 assetId) external view  returns (uint256[] memory);
 
     /**
      * @dev Returns the information present in the certificate (`issuer`, `metadata`)
@@ -89,12 +96,10 @@ interface IERC245 {
     );
 
     /**
-     * @dev Returns the information presented in the movement (`issuer`, `lat`, `lng`, `co2e`, `certId`, `metadata`)
+     * @dev Returns the information presented in the movement (`issuer`, `co2e`, `certId`, `metadata`)
      */
     function movementInfo(uint256 moveId) external view returns (
         address,
-        string memory,
-        string memory,
         uint64,
         uint256,
         string memory
@@ -149,8 +154,6 @@ interface IERC245 {
      */
     function issueMovement(
         uint256 moveId,
-        string memory lat,
-        string memory lng,
         uint64 co2e,
         uint256 certId,
         string memory metadata_
@@ -161,10 +164,22 @@ interface IERC245 {
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Emits a {CertificateAssigned} event.
+     * Emits a {AssetCertificateAssigned} event.
      */
-    function addCertificates(
+    function addAssetCertificates(
         uint256 assetId, 
+        uint256[] memory certificates
+    ) external returns (bool);
+
+    /**
+     * @dev Append existing movements to asset traceability.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {MovementCertificateAssigned} event.
+     */
+    function addMovementCertificates(
+        uint256 moveId, 
         uint256[] memory certificates
     ) external returns (bool);
 

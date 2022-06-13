@@ -54,8 +54,6 @@ describe("ERC245", function () {
   describe("movement issuing", () => {
     const move = {
       moveId: 1010,
-      lat: "80000",
-      lng: "-4000",
       co2e: 500,
       certId: 100,
       metadata: JSON.stringify({ issuer: 100 }),
@@ -63,21 +61,12 @@ describe("ERC245", function () {
 
     beforeEach(async () => {
       await supply.issueCertificate(move.certId, "");
-      await supply.issueMovement(
-        move.moveId,
-        move.lat,
-        move.lng,
-        move.co2e,
-        move.certId,
-        move.metadata
-      );
+      await supply.issueMovement(move.moveId, move.co2e, move.certId, move.metadata);
     });
 
     it("returns the movement info correctly", async () => {
-      const [issuer, lat, lng, co2e, certId, metadata] = await supply.movementInfo(move.moveId);
+      const [issuer, co2e, certId, metadata] = await supply.movementInfo(move.moveId);
       expect(issuer).to.equal(owner.address);
-      expect(lat).to.equal(move.lat);
-      expect(lng).to.equal(move.lng);
       expect(co2e).to.equal(move.co2e);
       expect(certId).to.equal(move.certId);
       expect(metadata).to.equal(move.metadata);
@@ -85,20 +74,13 @@ describe("ERC245", function () {
 
     it("should fail issuing the same movement", async () => {
       await expect(
-        supply.issueMovement(move.moveId, move.lat, move.lng, move.co2e, move.certId, move.metadata)
+        supply.issueMovement(move.moveId, move.co2e, move.certId, move.metadata)
       ).to.be.revertedWith("Error: movement already exists");
     });
 
     it("should fail if the certificate has not been issued", async () => {
       await expect(
-        supply.issueMovement(
-          move.moveId + 1,
-          move.lat,
-          move.lng,
-          move.co2e,
-          move.certId + 1,
-          move.metadata
-        )
+        supply.issueMovement(move.moveId + 1, move.co2e, move.certId + 1, move.metadata)
       ).to.be.revertedWith("Error: certificate does not exists");
     });
   });
@@ -145,6 +127,56 @@ describe("ERC245", function () {
     });
   });
 
+  describe("movement operations", () => {
+    const movement = {
+      id: 12,
+      co2e: 1000,
+      certid: 12,
+      metadata: "movement_metadata",
+    };
+
+    beforeEach(async () => {
+      await supply.issueCertificate(movement.certid, "");
+      await supply.issueMovement(movement.id, movement.co2e, movement.certid, movement.metadata);
+    });
+
+    describe("add certificate to movement", () => {
+      const certificate1 = {
+        id: 14,
+        metadata: "certificate_metadata1",
+      };
+      const certificate2 = {
+        id: 15,
+        metadata: "certificate_metadata2",
+      };
+
+      beforeEach(async () => {
+        await supply.issueCertificate(certificate1.id, certificate1.metadata);
+        await supply.issueCertificate(certificate2.id, certificate2.metadata);
+      });
+
+      describe("when certificate exists", () => {
+        it("should not throw an error", async () => {
+          await supply.addMovementCertificates(movement.id, [certificate1.id]);
+
+          const [certId] = await supply.movementCertificates(movement.id);
+          expect(certId).to.equal(certificate1.id);
+        });
+      });
+
+      describe("when add second certificate", () => {
+        it("should return both ids", async () => {
+          await supply.addMovementCertificates(movement.id, [certificate1.id]);
+          await supply.addMovementCertificates(movement.id, [certificate2.id]);
+
+          const [certId1, certId2] = await supply.movementCertificates(movement.id);
+          expect(certId1).to.equal(certificate1.id);
+          expect(certId2).to.equal(certificate2.id);
+        });
+      });
+    });
+  });
+
   describe("asset operations", () => {
     const asset = {
       assetId: 1000,
@@ -174,22 +206,13 @@ describe("ERC245", function () {
     describe("add movement to asset", () => {
       const move = {
         moveId: 2000,
-        lat: "80000",
-        lng: "-4000",
         co2e: 200,
         certId: 100,
         metadata: JSON.stringify({ issuer: 100 }),
       };
 
       beforeEach(async () => {
-        await supply.issueMovement(
-          move.moveId,
-          move.lat,
-          move.lng,
-          move.co2e,
-          move.certId,
-          move.metadata
-        );
+        await supply.issueMovement(move.moveId, move.co2e, move.certId, move.metadata);
         await supply.addMovements(asset.assetId, [move.moveId]);
       });
 
@@ -199,10 +222,8 @@ describe("ERC245", function () {
       });
 
       it("should be present in asset traceability", async () => {
-        const [[moveId], [lat], [lng]] = await supply.assetTraceability(asset.assetId);
+        const [moveId] = await supply.assetTraceability(asset.assetId);
         expect(moveId).to.equal(move.moveId);
-        expect(lat).to.equal(move.lat);
-        expect(lng).to.equal(move.lng);
       });
 
       it("should fails if same movement is added to the same asset", async () => {
@@ -262,6 +283,42 @@ describe("ERC245", function () {
       });
     });
 
+    describe("add certificate to asset", () => {
+      const certificate1 = {
+        id: 14,
+        metadata: "certificate_metadata1",
+      };
+      const certificate2 = {
+        id: 15,
+        metadata: "certificate_metadata2",
+      };
+
+      beforeEach(async () => {
+        await supply.issueCertificate(certificate1.id, certificate1.metadata);
+        await supply.issueCertificate(certificate2.id, certificate2.metadata);
+      });
+
+      describe("when certificate exists", () => {
+        it("should not throw an error", async () => {
+          await supply.addAssetCertificates(asset.assetId, [certificate1.id]);
+
+          const [certId] = await supply.assetCertificates(asset.assetId);
+          expect(certId).to.equal(certificate1.id);
+        });
+      });
+
+      describe("when add second certificate", () => {
+        it("should return both ids", async () => {
+          await supply.addAssetCertificates(asset.assetId, [certificate1.id]);
+          await supply.addAssetCertificates(asset.assetId, [certificate2.id]);
+
+          const [certId1, certId2] = await supply.assetCertificates(asset.assetId);
+          expect(certId1).to.equal(certificate1.id);
+          expect(certId2).to.equal(certificate2.id);
+        });
+      });
+    });
+
     describe("alteration to children", () => {
       const parent = {
         assetId: 1012,
@@ -285,22 +342,13 @@ describe("ERC245", function () {
       describe("when movement added to parent", () => {
         const move = {
           moveId: 1010,
-          lat: "80000",
-          lng: "-4000",
           co2e: 200,
           certId: 100,
           metadata: JSON.stringify({ issuer: 100 }),
         };
 
         beforeEach(async () => {
-          await supply.issueMovement(
-            move.moveId,
-            move.lat,
-            move.lng,
-            move.co2e,
-            move.certId,
-            move.metadata
-          );
+          await supply.issueMovement(move.moveId, move.co2e, move.certId, move.metadata);
           await supply.addMovements(parent.assetId, [move.moveId]);
         });
 

@@ -44,8 +44,15 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
     /**
      * Modifiers
      */
-    modifier onlyIssuer(uint256 assetId) {
+    modifier onlyAssetIssuer(uint256 assetId) {
         (, address issuer, , , ) = assetInfo(assetId);
+        address account = accountOf(_msgSender());
+        require(account == issuer, "Error: account is not the asset issuer");
+        _;
+    }
+
+    modifier onlyMovementIssuer(uint256 moveId) {
+        (address issuer, , , ) = movementInfo(moveId);
         address account = accountOf(_msgSender());
         require(account == issuer, "Error: account is not the asset issuer");
         _;
@@ -269,8 +276,6 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
 
     function issueMovement(
         uint256 moveId,
-        string memory lat,
-        string memory lng,
         uint64 co2e,
         uint256 certId,
         string memory metadata_
@@ -282,33 +287,28 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         returns (bool)
     {
         address issuer = accountOf(_msgSender());
-        return
-            super._issueMovement(
-                moveId,
-                issuer,
-                lat,
-                lng,
-                co2e,
-                certId,
-                metadata_
-            );
+        return super._issueMovement(moveId, issuer, co2e, certId, metadata_);
     }
 
-    function addCertificates(uint256 assetId, uint256[] memory certificates)
-        public
-        virtual
-        override
-        onlyIssuer(assetId)
-        returns (bool)
-    {
-        return super.addCertificates(assetId, certificates);
+    function addAssetCertificates(
+        uint256 assetId,
+        uint256[] memory certificates
+    ) public virtual override onlyAssetIssuer(assetId) returns (bool) {
+        return super.addAssetCertificates(assetId, certificates);
+    }
+
+    function addMovementCertificates(
+        uint256 moveId,
+        uint256[] memory certificates
+    ) public virtual override onlyMovementIssuer(moveId) returns (bool) {
+        return super.addMovementCertificates(moveId, certificates);
     }
 
     function addMovements(uint256 assetId, uint256[] memory movements)
         public
         virtual
         override
-        onlyIssuer(assetId)
+        onlyAssetIssuer(assetId)
         whenNotPaused
         returns (bool)
     {
@@ -319,7 +319,7 @@ contract SupplyChain is ERC245, ERC423, ERC721, Pausable {
         uint256 assetId,
         uint256[] memory parents,
         uint16[] memory composition
-    ) public override onlyIssuer(assetId) whenNotPaused returns (bool) {
+    ) public override onlyAssetIssuer(assetId) whenNotPaused returns (bool) {
         return super.addParents(assetId, parents, composition);
     }
 

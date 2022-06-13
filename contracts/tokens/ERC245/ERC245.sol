@@ -71,6 +71,23 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
     }
 
     /**
+     * @dev Returns the movement certificates in a `certificate` list
+     *
+     * `certificate` -> certificate id
+     */
+    function movementCertificates(uint256 moveId)
+        public
+        view
+        virtual
+        override
+        returns (uint256[] memory)
+    {
+        Chain.Movement storage move = _movements[moveId];
+
+        return move.certificates;
+    }
+
+    /**
      * @dev Returns the asset composition in two same-sized lists (`asset`, `portion`)
      *
      * `asset`   -> asset id
@@ -105,22 +122,10 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         view
         virtual
         override
-        returns (
-            uint256[] memory,
-            string[] memory,
-            string[] memory
-        )
+        returns (uint256[] memory)
     {
         Chain.Asset storage asset = _assets[assetId];
-        string[] memory lats = new string[](asset.traceability.length);
-        string[] memory lngs = new string[](asset.traceability.length);
-
-        for (uint256 i = 0; i < asset.traceability.length; i++) {
-            lats[i] = _movements[asset.traceability[i]].lat;
-            lngs[i] = _movements[asset.traceability[i]].lng;
-        }
-
-        return (asset.traceability, lats, lngs);
+        return asset.traceability;
     }
 
     /**
@@ -138,7 +143,7 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
     }
 
     /**
-     * @dev Returns the information presented in the movement (`issuer`, `lat`, `lng`, `co2e`, `certId`, `metadata`)
+     * @dev Returns the information presented in the movement (`issuer`, `co2e`, `certId`, `metadata`)
      */
     function movementInfo(uint256 moveId)
         public
@@ -147,8 +152,6 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         override
         returns (
             address,
-            string memory,
-            string memory,
             uint64,
             uint256,
             string memory
@@ -157,8 +160,6 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         Chain.Movement storage movement = _movements[moveId];
         return (
             movement.issuer,
-            movement.lat,
-            movement.lng,
             movement.co2e,
             movement.certId,
             movement.metadata
@@ -223,38 +224,39 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
      */
     function issueMovement(
         uint256 moveId,
-        string memory lat,
-        string memory lng,
         uint64 co2e,
         uint256 certId,
         string memory metadata_
     ) public virtual override returns (bool) {
-        return
-            _issueMovement(
-                moveId,
-                _msgSender(),
-                lat,
-                lng,
-                co2e,
-                certId,
-                metadata_
-            );
+        return _issueMovement(moveId, _msgSender(), co2e, certId, metadata_);
     }
 
     /**
-     * @dev Append existing movements to asset traceability.
+     * @dev Append certificate to asset.
      *
      * Returns a boolean value indicating whether the operation succeeded.
      *
-     * Emits a {CertificateAssigned} event.
+     * Emits a {AssetCertificateAssigned} event.
      */
-    function addCertificates(uint256 assetId, uint256[] memory certificates)
-        public
-        virtual
-        override
-        returns (bool)
-    {
-        return _addCertificates(assetId, certificates);
+    function addAssetCertificates(
+        uint256 assetId,
+        uint256[] memory certificates
+    ) public virtual override returns (bool) {
+        return _addAssetCertificates(assetId, certificates);
+    }
+
+    /**
+     * @dev Append certificate to movement.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {MovementCertificateAssigned} event.
+     */
+    function addMovementCertificates(
+        uint256 moveId,
+        uint256[] memory certificates
+    ) public virtual override returns (bool) {
+        return _addMovementCertificates(moveId, certificates);
     }
 
     /**
@@ -341,8 +343,6 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
     function _issueMovement(
         uint256 moveId,
         address issuer,
-        string memory lat,
-        string memory lng,
         uint64 co2e,
         uint256 certId,
         string memory metadata_
@@ -355,8 +355,6 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
 
         movement.id = moveId;
         movement.issuer = issuer;
-        movement.lat = lat;
-        movement.lng = lng;
         movement.co2e = co2e;
         movement.certId = certificate.id;
         movement.metadata = metadata_;
@@ -365,11 +363,10 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
         return true;
     }
 
-    function _addCertificates(uint256 assetId, uint256[] memory certificates)
-        internal
-        virtual
-        returns (bool)
-    {
+    function _addAssetCertificates(
+        uint256 assetId,
+        uint256[] memory certificates
+    ) internal virtual returns (bool) {
         Chain.Asset storage asset = _assets[assetId];
 
         for (uint256 i = 0; i < certificates.length; i++) {
@@ -386,7 +383,41 @@ contract ERC245 is Context, IERC245, IERC245Metadata {
 
             asset.certificates.push(certificate.id);
 
-            emit CertificateAssigned(certificate.id, assetId, _msgSender());
+            emit AssetCertificateAssigned(
+                certificate.id,
+                assetId,
+                _msgSender()
+            );
+        }
+
+        return true;
+    }
+
+    function _addMovementCertificates(
+        uint256 moveId,
+        uint256[] memory certificates
+    ) internal virtual returns (bool) {
+        Chain.Movement storage movement = _movements[moveId];
+
+        for (uint256 i = 0; i < certificates.length; i++) {
+            require(
+                !Array.contains(movement.certificates, certificates[i]),
+                "Error: certificate already added"
+            );
+
+            Chain.Certificate storage certificate = _certs[certificates[i]];
+            require(
+                certificate.id != 0,
+                "Error: can not add inexistent certificate"
+            );
+
+            movement.certificates.push(certificate.id);
+
+            emit MovementCertificateAssigned(
+                certificate.id,
+                moveId,
+                _msgSender()
+            );
         }
 
         return true;

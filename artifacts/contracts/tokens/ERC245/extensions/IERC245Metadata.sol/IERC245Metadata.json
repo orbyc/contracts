@@ -9,11 +9,36 @@
         {
           "indexed": false,
           "internalType": "uint256",
+          "name": "certId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
           "name": "assetId",
           "type": "uint256"
         },
         {
           "indexed": false,
+          "internalType": "address",
+          "name": "signer",
+          "type": "address"
+        }
+      ],
+      "name": "AssetCertificateAssigned",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "assetId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "signer",
           "type": "address"
@@ -32,38 +57,13 @@
           "type": "uint256"
         },
         {
-          "indexed": false,
+          "indexed": true,
           "internalType": "address",
           "name": "signer",
           "type": "address"
         }
       ],
       "name": "CertIssued",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "certId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "assetId",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "signer",
-          "type": "address"
-        }
-      ],
-      "name": "CertificateAssigned",
       "type": "event"
     },
     {
@@ -97,11 +97,36 @@
         {
           "indexed": false,
           "internalType": "uint256",
+          "name": "certId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
           "name": "moveId",
           "type": "uint256"
         },
         {
           "indexed": false,
+          "internalType": "address",
+          "name": "signer",
+          "type": "address"
+        }
+      ],
+      "name": "MovementCertificateAssigned",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "moveId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
           "internalType": "address",
           "name": "signer",
           "type": "address"
@@ -173,7 +198,31 @@
           "type": "uint256[]"
         }
       ],
-      "name": "addCertificates",
+      "name": "addAssetCertificates",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "moveId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "certificates",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "addMovementCertificates",
       "outputs": [
         {
           "internalType": "bool",
@@ -333,16 +382,6 @@
           "internalType": "uint256[]",
           "name": "",
           "type": "uint256[]"
-        },
-        {
-          "internalType": "string[]",
-          "name": "",
-          "type": "string[]"
-        },
-        {
-          "internalType": "string[]",
-          "name": "",
-          "type": "string[]"
         }
       ],
       "stateMutability": "view",
@@ -443,16 +482,6 @@
           "type": "uint256"
         },
         {
-          "internalType": "string",
-          "name": "lat",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "lng",
-          "type": "string"
-        },
-        {
           "internalType": "uint64",
           "name": "co2e",
           "type": "uint64"
@@ -487,22 +516,31 @@
           "type": "uint256"
         }
       ],
+      "name": "movementCertificates",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "moveId",
+          "type": "uint256"
+        }
+      ],
       "name": "movementInfo",
       "outputs": [
         {
           "internalType": "address",
           "name": "",
           "type": "address"
-        },
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "",
-          "type": "string"
         },
         {
           "internalType": "uint64",

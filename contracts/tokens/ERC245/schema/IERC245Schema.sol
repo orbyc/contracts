@@ -41,14 +41,12 @@ library Chain {
         uint256 id;
         // movement issuer id
         address issuer;
-        // latitude
-        string lat;
-        // longitude
-        string lng;
         // co2 emission
         uint64 co2e;
         // co2 emission certificate
         uint256 certId;
+        // list of other certificates
+        uint256[] certificates;
         // movement metadata
         string metadata;
     }
