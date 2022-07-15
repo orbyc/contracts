@@ -1,4 +1,4 @@
-module github.com/orbyc/contracts/sdk
+module github.com/orbyc/contracts
 
 go 1.18
 
