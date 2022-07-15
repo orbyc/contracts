@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require('@symblox/hardhat-abi-gen');
 require("dotenv").config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -38,4 +39,11 @@ module.exports = {
       accounts: [process.env.ACCOUNT_PK],
     },
   },
+
+  abiExporter: {
+    path: './data/abi',
+    clear: true,
+    flat: true,
+    spacing: 2
+  }
 };
