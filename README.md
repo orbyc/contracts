@@ -1,5 +1,5 @@
 # orbyc Chain
-`orbyc Chain` is a smart contract for creating and managing NFTs on the Ethereum blockchain. The contract is built using several popular standards including AccessControl, ERC721Enumerable, ERC721Certificable, ERC721Compound, ERC721EmbedMetadata, ERC721Traceable, ERC2981, and Multisig.
+orbyc Chain is a smart contract for creating and managing NFTs on the Ethereum blockchain. The contract is built using several popular standards including AccessControl, ERC721Enumerable, ERC721Certificable, ERC721Compound, ERC721EmbedMetadata, ERC721Traceable, ERC2981, and Multisig.
 
 ## Getting Started
 To get started with orbyc Chain, you'll need to have an Ethereum wallet that can interact with smart contracts, such as MetaMask. You'll also need some ETH to pay for gas fees on the Ethereum network.
