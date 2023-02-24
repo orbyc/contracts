@@ -9,6 +9,9 @@ pragma solidity ^0.8.0;
 abstract contract ERC721EmbedMetadata {
     mapping(uint256 => string) private _metadata;
 
+    /**
+     * @dev Returns the metadata associated with a non-fungible token with the specified token ID
+     */
     function getMetadata(uint256 tokenId)
         external
         view
@@ -17,6 +20,9 @@ abstract contract ERC721EmbedMetadata {
         return _metadata[tokenId];
     }
 
+    /**
+     * @dev Sets the metadata associated with a non-fungible token with the specified token ID
+     */
     function _setTokenMetadata(uint256 tokenId, string memory _data)
         internal
         virtual

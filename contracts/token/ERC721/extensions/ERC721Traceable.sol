@@ -13,6 +13,9 @@ abstract contract ERC721Traceable {
 
     mapping(uint256 => Trace[]) private _traces;
 
+    /**
+     * @dev Returns the traceability records of a non-fungible token with the specified token ID
+     */
     function getTraceability(uint256 tokenId)
         external
         view
@@ -21,6 +24,9 @@ abstract contract ERC721Traceable {
         return _traces[tokenId];
     }
 
+    /**
+     * @dev Adds new traceability records to a non-fungible token's history
+     */
     function appendTraces(uint256 tokenId, Trace[] memory traces)
         external
         virtual
@@ -28,6 +34,9 @@ abstract contract ERC721Traceable {
         _appendTraces(tokenId, traces);
     }
 
+    /**
+     * @dev Adds new traceability records to a non-fungible token's history
+     */
     function _appendTraces(uint256 tokenId, Trace[] memory traces)
         internal
         virtual
@@ -37,6 +46,9 @@ abstract contract ERC721Traceable {
         }
     }
 
+    /**
+     * @dev Resets the traceability records of a non-fungible token with the specified token ID
+     */
     function _resetTraceability(uint256 tokenId) internal virtual {
         delete _traces[tokenId];
     }

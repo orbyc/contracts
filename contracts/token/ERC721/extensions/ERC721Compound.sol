@@ -14,6 +14,9 @@ abstract contract ERC721Compound {
 
     mapping(uint256 => Component[]) private _components;
 
+    /**
+     * @dev Returns the composition of a non-fungible token with the specified token ID
+     */
     function getComposition(uint256 tokenId)
         external
         view
@@ -22,6 +25,9 @@ abstract contract ERC721Compound {
         return _components[tokenId];
     }
 
+    /**
+     * @dev Adds new components to the composition of a non-fungible token
+     */
     function appendComponents(uint256 tokenId, Component[] memory components)
         external
         virtual
@@ -29,6 +35,9 @@ abstract contract ERC721Compound {
         _appendComponents(tokenId, components);
     }
 
+    /**
+     * @dev Adds new components to the composition of a non-fungible token
+     */
     function _appendComponents(uint256 tokenId, Component[] memory components)
         internal
         virtual
@@ -38,6 +47,9 @@ abstract contract ERC721Compound {
         }
     }
 
+    /**
+     * @dev Resets the composition of a non-fungible token with the specified token ID
+     */
     function _resetComposition(uint256 tokenId) internal virtual {
         delete _components[tokenId];
     }

@@ -14,6 +14,9 @@ abstract contract ERC721Certificable {
 
     mapping(uint256 => Certificate[]) private _certifications;
 
+    /**
+     * @dev Returns the certification records of a non-fungible token with the specified token ID
+     */
     function getCertifications(uint256 tokenId)
         external
         view
@@ -22,6 +25,9 @@ abstract contract ERC721Certificable {
         return _certifications[tokenId];
     }
 
+    /**
+     * @dev Adds new certification records to a non-fungible token
+     */
     function appendCertificates(
         uint256 tokenId,
         Certificate[] memory certificates
@@ -29,6 +35,9 @@ abstract contract ERC721Certificable {
         _appendCertificates(tokenId, certificates);
     }
 
+    /**
+     * @dev Adds new certification records to a non-fungible token
+     */
     function _appendCertificates(
         uint256 tokenId,
         Certificate[] memory certificates
@@ -38,6 +47,9 @@ abstract contract ERC721Certificable {
         }
     }
 
+    /**
+     * @dev Resets the certification records of a non-fungible token with the specified token ID
+     */
     function _resetCertifications(uint256 tokenId) internal virtual {
         delete _certifications[tokenId];
     }
