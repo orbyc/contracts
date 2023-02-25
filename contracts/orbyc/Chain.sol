@@ -97,7 +97,7 @@ contract OrbycChain is
         _setRoleAdmin(COMPOSITION_ISSUER_ROLE, DEFAULT_ADMIN_ROLE);
         _setRoleAdmin(TRACEABILITY_ISSUER_ROLE, DEFAULT_ADMIN_ROLE);
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        // _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
     /**
