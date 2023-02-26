@@ -7,23 +7,19 @@ pragma solidity ^0.8.0;
  * @title ERC-721 Non-Fungible Token Standard, optional embeded metadata extension
  */
 abstract contract ERC721EmbedMetadata {
-    mapping(uint256 => string) private _metadata;
+    mapping(uint256 => bytes) private _metadata;
 
     /**
      * @dev Returns the metadata associated with a non-fungible token with the specified token ID
      */
-    function getMetadata(uint256 tokenId)
-        external
-        view
-        returns (string memory)
-    {
+    function getMetadata(uint256 tokenId) external view returns (bytes memory) {
         return _metadata[tokenId];
     }
 
     /**
      * @dev Sets the metadata associated with a non-fungible token with the specified token ID
      */
-    function _setTokenMetadata(uint256 tokenId, string memory _data)
+    function _setTokenMetadata(uint256 tokenId, bytes memory _data)
         internal
         virtual
     {

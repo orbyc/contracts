@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -18,15 +18,14 @@ import "../token/ERC721/extensions/ERC721Traceable.sol";
 
 /**
  * @title OrbycChain
- * @dev The OrbycChain smart contract is a versatile contract that allows for a variety of actions related to non-fungible tokens (NFTs) on the Ethereum
- * blockchain. It includes a range of interfaces and functions that enable NFT ownership tracking, metadata management, and certification, as well as
- * access control and multisig capabilities for enhanced security. Additionally, it supports the ERC2981 royalty standard for NFTs, providing a way for
- * creators to receive royalties on secondary sales of their work. Overall, the OrbycChain contract is a powerful tool for creating and managing NFTs on
- * the Ethereum network.
+ * @dev The OrbycChain smart contract is a multi-faceted contract that integrates several standard interfaces, such as AccessControl,
+ * ERC1155, ERC2981, and Multisig. It is responsible for managing accounts, issuing assets, and managing access control
+ * through various roles. The contract also includes functions for appending certificates and components to tokens and
+ * resetting these values, which are limited to users with the appropriate role.
  */
 contract OrbycChain is
     AccessControl,
-    ERC721Enumerable,
+    ERC1155,
     ERC721Certificable,
     ERC721Compound,
     ERC721EmbedMetadata,
@@ -56,12 +55,12 @@ contract OrbycChain is
         public
         view
         virtual
-        override(AccessControl, ERC721Enumerable, ERC2981, Multisig)
+        override(AccessControl, ERC1155, ERC2981, Multisig)
         returns (bool)
     {
         return
             AccessControl.supportsInterface(interfaceId) ||
-            ERC721Enumerable.supportsInterface(interfaceId) ||
+            ERC1155.supportsInterface(interfaceId) ||
             ERC2981.supportsInterface(interfaceId) ||
             Multisig.supportsInterface(interfaceId);
     }
@@ -81,15 +80,12 @@ contract OrbycChain is
 
     /**
      * @dev Constructor function for OrbycChain.
-     * @param name_ Name of the NFT contract.
-     * @param symbol_ Symbol of the NFT contract.
      * @param accounts_ An instance of the IAccountControl contract.
      */
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        IAccountControl accounts_
-    ) ERC721(name_, symbol_) Multisig(name_) {
+    constructor(IAccountControl accounts_)
+        ERC1155("https://wallet.orbyc.com/metadata")
+        Multisig("orbyc Chain")
+    {
         _accounts = accounts_;
 
         _setRoleAdmin(ASSET_ISSUER_ROLE, DEFAULT_ADMIN_ROLE);
@@ -109,36 +105,22 @@ contract OrbycChain is
     }
 
     /**
-     * @notice Returns the Uniform Resource Identifier (URI) for a token.
-     * @param tokenId The token to fetch the URI for.
-     * @return A string representing the URI.
-     */
-    function tokenURI(uint256 tokenId)
-        public
-        pure
-        override
-        returns (string memory)
-    {
-        return
-            string.concat(
-                "https://wallet.orbyc.com/metadata/",
-                Strings.toString(tokenId)
-            );
-    }
-
-    /**
-     * @notice Mint a new token with the given ID and metadata.
-     * @dev Only users with the ASSET_ISSUER_ROLE can mint tokens.
-     * @param tokenId The ID of the token to mint.
-     * @param data The metadata for the token.
-     */
-    function mint(uint256 tokenId, string memory data)
-        public
-        onlyRole(ASSET_ISSUER_ROLE)
-    {
-        _mint(_msgSender(), tokenId);
-        _setTokenMetadata(tokenId, data);
-        _setTokenRoyalty(tokenId, _msgSender(), _feeDenominator() / 10);
+    @dev Mints a new token with the given ID, amount and metadata, and assigns it to the specified address.
+    Only the asset issuer role can perform this action.
+    @param to The address that will receive the minted tokens.
+    @param id The ID of the token to mint.
+    @param amount The amount of tokens to mint.
+    @param data Additional metadata to be associated with the token.
+    */
+    function mint(
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public onlyRole(ASSET_ISSUER_ROLE) {
+        _mint(to, id, amount, data);
+        _setTokenMetadata(id, data);
+        _setTokenRoyalty(id, to, _feeDenominator() / 10);
     }
 
     /**
@@ -239,7 +221,7 @@ contract OrbycChain is
      * @dev Only users with the DEFAULT_ADMIN_ROLE can reset metadata.
      * @param tokenId The ID of the token to reset metadata for.
      */
-    function resetTokenMetadata(uint256 tokenId, string memory metadata)
+    function resetTokenMetadata(uint256 tokenId, bytes memory metadata)
         public
         requireSignatures(1)
         signatureFromOwner(tokenId)
