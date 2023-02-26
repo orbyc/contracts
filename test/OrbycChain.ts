@@ -10,11 +10,7 @@ describe("Lock", function () {
     const accounts = await Accounts.deploy();
 
     const OrbycChain = await ethers.getContractFactory("OrbycChain");
-    const orbyc = await OrbycChain.deploy(
-      "orbyc Chain",
-      "OCH",
-      accounts.address
-    );
+    const orbyc = await OrbycChain.deploy(accounts.address);
 
     return { orbyc, owner, otherAccount };
   }

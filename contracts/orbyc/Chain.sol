@@ -79,12 +79,24 @@ contract OrbycChain is
     }
 
     /**
+     * @dev Modifier that checks if the signature comes from the given account.
+     * @param account signer account.
+     */
+    modifier signatureFrom(address account) {
+        require(
+            _accounts.accountOf(signers(0)) == account,
+            "Orbyc: invalid account for signer"
+        );
+        _;
+    }
+
+    /**
      * @dev Constructor function for OrbycChain.
      * @param accounts_ An instance of the IAccountControl contract.
      */
     constructor(IAccountControl accounts_)
-        ERC1155("https://wallet.orbyc.com/metadata")
-        Multisig("orbyc Chain")
+        ERC1155("https://wallet.orbyc.com/metadata/{id}")
+        Multisig("OrbycChain")
     {
         _accounts = accounts_;
 
@@ -121,6 +133,44 @@ contract OrbycChain is
         _mint(to, id, amount, data);
         _setTokenMetadata(id, data);
         _setTokenRoyalty(id, to, _feeDenominator() / 10);
+    }
+
+    /**
+    @dev Safely transfers tokens from one account to the other.
+    Only possible to perform by providing the signature of the receiver.
+    @param from The address that will send tokens.
+    @param to The address that will receive the tokens.
+    @param id The ID of the token to transfer.
+    @param amount The amount of tokens to transfer.
+    @param data Additional metadata to be associated with the token.
+    */
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public virtual override requireSignatures(1) signatureFrom(to) {
+        super.safeTransferFrom(from, to, id, amount, data);
+    }
+
+    /**
+    @dev Safely transfers tokens from one account to the other.
+    Only possible to perform by providing the signature of the receiver.
+    @param from The address that will send tokens.
+    @param to The address that will receive the tokens.
+    @param ids The IDs of the tokens to transfer.
+    @param amounts The amounts of tokens to transfer.
+    @param data Additional metadata to be associated with the token.
+    */
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public virtual override requireSignatures(1) signatureFrom(to) {
+        super.safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 
     /**
