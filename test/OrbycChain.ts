@@ -9,17 +9,21 @@ describe("Lock", function () {
     const Accounts = await ethers.getContractFactory("AccountControlMock");
     const accounts = await Accounts.deploy();
 
-    const OrbycChain = await ethers.getContractFactory("OrbycChain");
-    const orbyc = await OrbycChain.deploy(accounts.address);
+    const SupplyChain = await ethers.getContractFactory("SupplyChain");
+    const supplyChain = await SupplyChain.deploy(
+      accounts.address,
+      "orbyc Supply Chain",
+      "https://wallet.orbyc.com/metadata/{id}"
+    );
 
-    return { orbyc, owner, otherAccount };
+    return { supplyChain, owner, otherAccount };
   }
 
   describe("Deployment", function () {
     it("Should set the right role", async function () {
-      const { orbyc, owner } = await loadFixture(deployOrbycChainFixture);
+      const { supplyChain, owner } = await loadFixture(deployOrbycChainFixture);
 
-      expect(await orbyc.hasRole(1, owner.address)).to.be.true;
+      expect(await supplyChain.hasRole(1, owner.address)).to.be.true;
     });
   });
 });

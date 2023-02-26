@@ -13,11 +13,7 @@ contract AccountControlMock is IAccountControl {
         address,
         address,
         string memory
-    ) public pure returns (bool) {
-        return true;
-    }
+    ) public pure {}
 
-    function removeSigner(address, string memory) public pure returns (bool) {
-        return true;
-    }
+    function removeSigner(address, string memory) public pure {}
 }

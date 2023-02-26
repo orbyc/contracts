@@ -1525,10 +1525,10 @@ cliui@^7.0.2:
     strip-ansi "^6.0.0"
     wrap-ansi "^7.0.0"
 
-closedzeppelin-contracts@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/closedzeppelin-contracts/-/closedzeppelin-contracts-1.2.0.tgz#0106b67cffc23482d86406cce982060554d39aef"
-  integrity sha512-HcbruXR+bH1EJGQER5mOlOM2d1ukbs4vE4F3X8UFnLu2rzRpIeiK0Iu3yd0az/XP9mgQk35VKfFfroj0DOsWEA==
+closedzeppelin-contracts@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/closedzeppelin-contracts/-/closedzeppelin-contracts-1.2.1.tgz#4d534bb93a08ac4c27bd704210d4722be6b8a772"
+  integrity sha512-Waa1tyOeCxfitUbwUzlgxeqX4rjEnSCwvl0Oq6fDUu4U37VZKJpoxrDDNWS/hUlC+iaEio3gc1HizDBoYcMOUw==
 
 color-convert@^1.9.0:
   version "1.9.3"

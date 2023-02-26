@@ -1,13 +1,19 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const accounts = "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d";
+  const Accounts = await ethers.getContractFactory("AccountControlMock");
+  const accounts = await Accounts.deploy();
+  await accounts.deployed();
 
-  const OrbycChain = await ethers.getContractFactory("OrbycChain");
-  const orbyc = await OrbycChain.deploy("orbyc Chain", "OCH", accounts);
-  await orbyc.deployed();
+  const SupplyChain = await ethers.getContractFactory("SupplyChain");
+  const supplyChain = await SupplyChain.deploy(
+    accounts.address,
+    "orbyc Supply Chain",
+    "https://wallet.orbyc.com/metadata/{id}"
+  );
+  await supplyChain.deployed();
 
-  console.log("address:", orbyc.address);
+  console.log("address:", supplyChain.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Orbyc Contracts v1.0.0 (orbyc/Chain.sol)
+// SupplyChain Contracts v1.0.0 (suite/SupplyChain.sol)
 
 pragma solidity ^0.8.0;
 
@@ -17,13 +17,13 @@ import "../token/ERC721/extensions/ERC721EmbedMetadata.sol";
 import "../token/ERC721/extensions/ERC721Traceable.sol";
 
 /**
- * @title OrbycChain
- * @dev The OrbycChain smart contract is a multi-faceted contract that integrates several standard interfaces, such as AccessControl,
+ * @title SupplyChain
+ * @dev The SupplyChain smart contract is a multi-faceted contract that integrates several standard interfaces, such as AccessControl,
  * ERC1155, ERC2981, and Multisig. It is responsible for managing accounts, issuing assets, and managing access control
  * through various roles. The contract also includes functions for appending certificates and components to tokens and
  * resetting these values, which are limited to users with the appropriate role.
  */
-contract OrbycChain is
+contract SupplyChain is
     AccessControl,
     ERC1155,
     ERC721Certificable,
@@ -34,7 +34,7 @@ contract OrbycChain is
     Multisig
 {
     /**
-     * @dev The OrbycChain contract has a single variable that contains an IAccountControl instance, which is used to manage accounts.
+     * @dev The SupplyChain contract has a single variable that contains an IAccountControl instance, which is used to manage accounts.
      */
     IAccountControl private _accounts;
 
@@ -47,9 +47,9 @@ contract OrbycChain is
     uint64 public constant TRACEABILITY_ISSUER_ROLE = 0x1 << 4;
 
     /**
-     * @dev Check if a given interface is supported by OrbycChain.
+     * @dev Check if a given interface is supported by SupplyChain.
      * @param interfaceId ID of the interface.
-     * @return True if the interface is supported by OrbycChain, otherwise false.
+     * @return True if the interface is supported by SupplyChain, otherwise false.
      */
     function supportsInterface(bytes4 interfaceId)
         public
@@ -73,7 +73,7 @@ contract OrbycChain is
         (address owner, ) = royaltyInfo(tokenId, 0);
         require(
             _accounts.accountOf(signers(0)) == owner,
-            "Orbyc: signer not owner"
+            "SupplyChain: signer not owner"
         );
         _;
     }
@@ -85,19 +85,20 @@ contract OrbycChain is
     modifier signatureFrom(address account) {
         require(
             _accounts.accountOf(signers(0)) == account,
-            "Orbyc: invalid account for signer"
+            "SupplyChain: invalid account for signer"
         );
         _;
     }
 
     /**
-     * @dev Constructor function for OrbycChain.
+     * @dev Constructor function for SupplyChain.
      * @param accounts_ An instance of the IAccountControl contract.
      */
-    constructor(IAccountControl accounts_)
-        ERC1155("https://wallet.orbyc.com/metadata/{id}")
-        Multisig("OrbycChain")
-    {
+    constructor(
+        IAccountControl accounts_,
+        string memory name_,
+        string memory uri_
+    ) ERC1155(uri_) Multisig(name_) {
         _accounts = accounts_;
 
         _setRoleAdmin(ASSET_ISSUER_ROLE, DEFAULT_ADMIN_ROLE);

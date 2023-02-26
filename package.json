@@ -29,6 +29,6 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.1",
-    "closedzeppelin-contracts": "^1.2.0"
+    "closedzeppelin-contracts": "^1.2.1"
   }
 }
